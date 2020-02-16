@@ -1,0 +1,66 @@
+.TH cyclog 1
+.SH NAME
+cyclog \- write a log to disk, with automatic rotation
+.SH SYNOPSIS
+.B cyclog
+[
+.B \-s\fIsize
+] [
+.B \-n\fInum
+] [
+.B \-m\fImargin
+]
+.I dir
+.SH DESCRIPTION
+.B cyclog
+copies its input to a log file in the
+.I dir
+directory.
+When that file reaches 100000 bytes,
+.B cyclog
+makes sure it is safely written to disk
+and starts writing to a new file.
+.B cyclog
+also removes old files
+to guarantee that there are at most 10 log files in
+.IR dir .
+
+The name of a log file is the TAI timestamp
+when the file was started.
+The mode of the file is 444 if it has been safely written to disk,
+644 otherwise.
+A log file that has not been written to disk is
+not guaranteed to survive a system crash.
+
+The
+.I dir
+directory must exist and be writable to
+.IR cyclog .
+.SH OPTIONS
+.TP 5
+.B \-s\fIsize
+(Default: 104000. Minimum: 512.)
+Maximum file size.
+After writing this many bytes to one file,
+.B cyclog
+will start a new file.
+.TP
+.B \-n\fInum
+(Default: 10. Minimum: 1.)
+Maximum number of log files.
+If
+.B cyclog
+sees this many files before it opens a new file,
+it removes the oldest,
+as determined by the starting timestamps.
+.TP
+.B \-m\fImargin
+(Default: 4000.)
+.B cyclog
+tries to chop log files at line boundaries.
+If it sees a newline within
+.I margin
+bytes of the maximum file size,
+it starts a new file.
+.SH "SEE ALSO"
+fsync(2)

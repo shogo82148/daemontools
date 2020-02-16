@@ -1,0 +1,25 @@
+.TH setuser 1
+.SH NAME
+setuser \- run a program under a user's uid and gid
+.SH SYNOPSIS
+.B setuser
+.I user
+.I program
+[
+.I arg ...
+]
+.SH DESCRIPTION
+.B setuser
+sets its uid and gid to
+.IR user 's
+uid and gid.
+It then runs
+.I program
+with the given arguments.
+.B setuser
+can be run only by root.
+.SH "SEE ALSO"
+su(1),
+setuid(2),
+setgid(2),
+setgroups(2)

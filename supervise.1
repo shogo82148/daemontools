@@ -1,0 +1,85 @@
+.TH supervise 1
+.SH NAME
+supervise \- start and monitor a service
+.SH SYNOPSIS
+.B supervise
+[
+.B \-rsudo
+]
+.I dir
+.I program
+[
+.I args ...
+]
+.SH DESCRIPTION
+.B supervise
+runs
+.I program
+with the given
+.IR args .
+It restarts
+.I program
+if
+.I program
+dies.
+
+.B supervise
+maintains a line of readable status information in
+.IR dir\fB/status .
+It uses
+.I dir\fB/status.new
+as a temporary file so that
+.I dir\fB/status
+is never partially written.
+.B supervise
+accepts commands from
+.B svc
+through the
+.I dir\fB/svcontrol
+file.
+.B supervise
+locks
+.I dir\fB/lock
+to prevent confusion.
+.I dir
+must already exist and be writable for
+.BR supervise .
+
+.B supervise
+pauses for a second before starting
+.IR program ,
+so that it does not loop too quickly if
+.I program
+exits immediately.
+.SH OPTIONS
+.TP 5
+.B \-r
+(Default.)
+.I program
+is normally running.
+Sets, but does not force,
+.BR \-u .
+.TP
+.B \-s
+.I program
+is normally not running.
+Sets, but does not force,
+.BR \-d .
+.TP
+.B \-u
+(Default.) Start
+.I program
+immediately.
+If it stops, restart it.
+.TP
+.B \-d
+Do not start
+.IR program .
+.TP
+.B \-o
+Start
+.I program
+immediately.
+If it stops, do not restart it.
+.SH "SEE ALSO"
+svc(1)

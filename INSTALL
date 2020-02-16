@@ -1,0 +1,27 @@
+Like any other piece of software (and information generally),
+daemontools comes with NO WARRANTY.
+
+
+Things you have to decide before starting:
+
+* Where programs will be installed, normally /usr/local/bin. To change
+this directory, edit conf-bin now.
+
+* Where man pages will be installed, normally /usr/local/man. To change
+this directory, edit conf-man now.
+
+
+How to install:
+
+ 1. Compile the programs:
+       % make
+ 2. Create the formatted man pages, *.0:
+       % make man
+ 3. Install the programs and man pages:
+       # make setup
+
+
+That's it! To report success:
+       % ( echo 'First M. Last'; cat `cat SYSDEPS` ) \
+         | mail djb-qst@koobera.math.uic.edu
+Replace First M. Last with your name.

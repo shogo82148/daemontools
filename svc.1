@@ -1,0 +1,72 @@
+.TH svc 1
+.SH NAME
+svc \- control a supervised service
+.SH SYNOPSIS
+.B svc
+[
+.B \-udorspchitk
+]
+.I dir
+.SH DESCRIPTION
+.B svc
+changes the status of a
+.BR supervise -monitored
+service.
+.I dir
+is the same directory
+used for
+.BR supervise .
+.SH OPTIONS
+.TP 5
+.B \-u
+Up.
+If the service is not running, start it.
+If the service stops, restart it.
+.TP
+.B \-d
+Down.
+If the service is running, send it a TERM signal and then a CONT signal.
+After it stops, do not restart it.
+.TP
+.B \-o
+Once.
+If the service is not running, start it.
+Do not restart it if it stops.
+.TP
+.B \-r
+Tell
+.B supervise
+that the service is normally running;
+this affects status messages.
+.TP
+.B \-s
+Tell
+.B supervise
+that the service is normally stopped;
+this affects status messages.
+.TP
+.B \-p
+Pause.
+Send the service a STOP signal.
+.TP
+.B \-c
+Continue.
+Send the service a CONT signal.
+.TP
+.B \-h
+Hangup.
+Send the service a HUP signal.
+.TP
+.B \-i
+Interrupt.
+Send the service an INT signal.
+.TP
+.B \-t
+Terminate.
+Send the service a TERM signal.
+.TP
+.B \-k
+Kill.
+Send the service a KILL signal.
+.SH "SEE ALSO"
+supervise(1)

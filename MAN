@@ -1,0 +1,15 @@
+d:::755:::
+d:::755:/man1::
+c:::644:/man1/:supervise.1:
+c:::644:/man1/:svc.1:
+c:::644:/man1/:cyclog.1:
+c:::644:/man1/:accustamp.1:
+c:::644:/man1/:tailocal.1:
+c:::644:/man1/:setuser.1:
+d:::755:/cat1::
+c:::644:/cat1/:supervise.0:
+c:::644:/cat1/:svc.0:
+c:::644:/cat1/:cyclog.0:
+c:::644:/cat1/:accustamp.0:
+c:::644:/cat1/:tailocal.0:
+c:::644:/cat1/:setuser.0:
