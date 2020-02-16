@@ -72,7 +72,7 @@ void chop()
   }
 }
 
-char fn[10 + FMT_ULONG];
+char fn[20 + FMT_ULONG];
 
 int safewrite(fd,buf,len)
 int fd;
@@ -111,6 +111,7 @@ char **argv;
   int flageof;
   unsigned long lastnow;
   int fd;
+  int len;
 
   umask(022);
 
@@ -138,7 +139,7 @@ char **argv;
     die_usage();
 
   if (chdir(dir) == -1)
-    strerr_die4sys(111,FATAL,"cyclog: unable to chdir to ",dir,": ");
+    strerr_die4sys(111,FATAL,"unable to chdir to ",dir,": ");
 
   lastnow = now();
   flageof = 0;
@@ -150,7 +151,7 @@ char **argv;
     for (;;) {
       lastnow = now();
       fn[0] = '@';
-      fn[1 + fmt_ulong(fn + 1,lastnow)] = 0;
+      fn[1 + fmt_uint0(fn + 1,(unsigned int) lastnow,14)] = 0;
       fd = open_excl(fn);
       if (fd != -1) break;
       strerr_warn4(WARNING,"unable to create ",fn,", pausing: ",&strerr_sys);
@@ -158,10 +159,10 @@ char **argv;
     }
 
     substdio_fdbuf(&ssout,safewrite,fd,outbuf,sizeof outbuf);
-    for (bytes = 0;bytes < size;++bytes) {
+    for (bytes = size;bytes > 0;--bytes) {
       if (substdio_get(&ssin,&ch,1) < 1) { flageof = 1; break; }
       substdio_BPUTC(&ssout,ch);
-      if ((ch == '\n') && (bytes >= size - margin)) break;
+      if ((ch == '\n') && (bytes <= margin)) break;
     }
     substdio_flush(&ssout);
 

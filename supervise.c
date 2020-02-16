@@ -12,16 +12,11 @@
 #include "select.h"
 #include "strerr.h"
 #include "sgetopt.h"
-#include "stralloc.h"
 #include "substdio.h"
 #include "readwrite.h"
 
 #define FATAL "supervise: fatal: "
 #define WARNING "supervise: warning: "
-void nomem()
-{
-  strerr_die2x(111,FATAL,"out of memory");
-}
 void die_usage()
 {
   strerr_die1x(100,"supervise: usage: supervise [ -rsudo ] dir program args ...");
@@ -29,35 +24,27 @@ void die_usage()
 
 int flagnormallyup = 1;
 int flagwant = 1;
-int want = 1;
+int flagwantup = 1;
 int pid = 0; /* 0 means down */
 int flagpaused; /* defined if(pid) */
 
-stralloc fnlock = {0};
+int fdexecdir;
 int fdlock;
-
-stralloc fncontrol = {0};
 int fdcontrolwrite;
 int fdcontrol;
-
-stralloc fnstatus = {0};
-stralloc fnstatusnew = {0};
-
 int selfpipe[2];
+
+char mark[FMT_ULONG];
+char pidstr[FMT_ULONG];
 
 void trigger()
 {
   write(selfpipe[1],"",1);
 }
 
-datetime_sec marktime;
-char mark[FMT_ULONG];
-char pidstr[FMT_ULONG];
-
 void statusmark()
 {
-  marktime = now();
-  mark[fmt_ulong(mark,(unsigned long) marktime)] = 0;
+  mark[fmt_ulong(mark,(unsigned long) now())] = 0;
   pidstr[fmt_ulong(pidstr,(unsigned long) pid)] = 0;
 }
 
@@ -67,9 +54,9 @@ void announce()
   substdio ss;
   char ssbuf[64];
 
-  fd = open_trunc(fnstatusnew.s);
+  fd = open_trunc("status.new");
   if (fd == -1) {
-    strerr_warn4(WARNING,"unable to open ",fnstatusnew.s,": ",&strerr_sys);
+    strerr_warn2(WARNING,"unable to open status.new: ",&strerr_sys);
     return;
   }
   substdio_fdbuf(&ss,write,fd,ssbuf,sizeof ssbuf);
@@ -90,26 +77,20 @@ void announce()
 
   if (pid && flagpaused)
     if (substdio_puts(&ss,", paused") == -1) goto writeerr;
-
-  if (flagwant)
-    if (want) {
-      if (!pid)
-        if (substdio_puts(&ss,", want up") == -1) goto writeerr;
-    }
-    else {
-      if (pid)
-        if (substdio_puts(&ss,", want down") == -1) goto writeerr;
-    }
+  if (flagwant && flagwantup && !pid)
+    if (substdio_puts(&ss,", want up") == -1) goto writeerr;
+  if (flagwant && !flagwantup && pid)
+    if (substdio_puts(&ss,", want down") == -1) goto writeerr;
 
   if (substdio_puts(&ss,"\n")) goto writeerr;
   if (substdio_flush(&ss) == -1) goto writeerr;
   close(fd);
-  if (rename(fnstatusnew.s,fnstatus.s) == -1)
-    strerr_warn6(WARNING,"unable to rename ",fnstatusnew.s," to ",fnstatus.s,": ",&strerr_sys);
+  if (rename("status.new","status") == -1)
+    strerr_warn2(WARNING,"unable to rename status.new to status: ",&strerr_sys);
   return;
 
   writeerr:
-  strerr_warn4(WARNING,"unable to write ",fnstatusnew.s,": ",&strerr_sys);
+  strerr_warn2(WARNING,"unable to write status.new: ",&strerr_sys);
   close(fd);
   return;
 }
@@ -127,8 +108,10 @@ char **argv;
       return;
     case 0:
       sleep(1);
+      if (fchdir(fdexecdir) == -1)
+	strerr_die2sys(111,FATAL,"unable to set directory: ");
       execvp(*argv,argv);
-      strerr_die4sys(111,WARNING,"unable to run ",*argv,": ");
+      strerr_die4sys(111,FATAL,"unable to run ",*argv,": ");
     default:
       pid = f;
       flagpaused = 0;
@@ -146,9 +129,9 @@ char **argv;
   while ((opt = getopt(argc,argv,"rsudo")) != opteof)
     switch(opt) {
       case 'r': flagnormallyup = 1;
-      case 'u': flagwant = 1; want = 1; break;
+      case 'u': flagwant = 1; flagwantup = 1; break;
       case 's': flagnormallyup = 0;
-      case 'd': flagwant = 1; want = 0; break;
+      case 'd': flagwant = 1; flagwantup = 0; break;
       case 'o': flagwant = 0; break;
       default: die_usage();
     }
@@ -158,18 +141,13 @@ char **argv;
   dir = *argv++;
   if (!*argv) die_usage();
 
-  if (!stralloc_copys(&fnlock,dir)) nomem();
-  if (!stralloc_cats(&fnlock,"/lock")) nomem();
-  if (!stralloc_0(&fnlock)) nomem();
-  if (!stralloc_copys(&fncontrol,dir)) nomem();
-  if (!stralloc_cats(&fncontrol,"/svcontrol")) nomem();
-  if (!stralloc_0(&fncontrol)) nomem();
-  if (!stralloc_copys(&fnstatus,dir)) nomem();
-  if (!stralloc_cats(&fnstatus,"/status")) nomem();
-  if (!stralloc_0(&fnstatus)) nomem();
-  if (!stralloc_copys(&fnstatusnew,dir)) nomem();
-  if (!stralloc_cats(&fnstatusnew,"/status.new")) nomem();
-  if (!stralloc_0(&fnstatusnew)) nomem();
+  fdexecdir = open_read(".");
+  if (fdexecdir == -1)
+    strerr_die2sys(111,FATAL,"unable to open current directory: ");
+  coe(fdexecdir);
+
+  if (chdir(dir) == -1)
+    strerr_die4sys(111,FATAL,"unable to chdir to ",dir,": ");
 
   if (pipe(selfpipe) == -1)
     strerr_die2sys(111,FATAL,"unable to create pipe: ");
@@ -180,27 +158,27 @@ char **argv;
 
   sig_childcatch(trigger);
 
-  fdlock = open_append(fnlock.s);
+  fdlock = open_append("lock");
   if (fdlock == -1)
-    strerr_die4sys(111,FATAL,"unable to open ",fnlock.s,": ");
+    strerr_die2sys(111,FATAL,"unable to open lock: ");
   coe(fdlock);
   if (lock_exnb(fdlock) == -1)
-    strerr_die4sys(111,FATAL,"unable to lock ",fnlock.s,": ");
+    strerr_die2sys(111,FATAL,"unable to acquire lock: ");
 
-  fifo_make(fncontrol.s,0600);
+  fifo_make("svcontrol",0600);
 
-  fdcontrol = open_read(fncontrol.s);
+  fdcontrol = open_read("svcontrol");
   if (fdcontrol == -1)
-    strerr_die4sys(111,FATAL,"unable to open ",fncontrol.s,": ");
+    strerr_die2sys(111,FATAL,"unable to open svcontrol: ");
   coe(fdcontrol);
   ndelay_on(fdcontrol); /* shouldn't be necessary */
-  fdcontrolwrite = open_write(fncontrol.s);
+  fdcontrolwrite = open_write("svcontrol");
   if (fdcontrolwrite == -1)
-    strerr_die4sys(111,FATAL,"unable to open ",fncontrol.s," for writing: ");
+    strerr_die2sys(111,FATAL,"unable to open svcontrol for writing: ");
   coe(fdcontrolwrite);
 
   statusmark();
-  if (!flagwant || want) trystart(argv);
+  if (!flagwant || flagwantup) trystart(argv);
 
   for (;;) {
     fd_set rfds;
@@ -225,17 +203,18 @@ char **argv;
 	if (!r || ((r == -1) && (errno != error_intr))) break;
 	if (r == pid) { pid = 0; statusmark(); }
       }
-      if (!pid) if (flagwant) if (want) trystart(argv);
+      if (!pid) if (flagwant) if (flagwantup) trystart(argv);
     }
 
     if (read(fdcontrol,&ch,1) == 1)
       switch(ch) {
 	case 'd':
-	  flagwant = 1; want = 0;
+	  flagwant = 1; flagwantup = 0;
 	  if (pid) { kill(pid,SIGTERM); kill(pid,SIGCONT); flagpaused = 0; }
 	  break;
-	case 'u': flagwant = 1; want = 1; if (!pid) trystart(argv); break;
+	case 'u': flagwant = 1; flagwantup = 1; if (!pid) trystart(argv); break;
 	case 'o': flagwant = 0; if (!pid) trystart(argv); break;
+	case 'a': if (pid) kill(pid,SIGALRM); break;
 	case 'h': if (pid) kill(pid,SIGHUP); break;
 	case 'k': if (pid) kill(pid,SIGKILL); break;
 	case 't': if (pid) kill(pid,SIGTERM); break;

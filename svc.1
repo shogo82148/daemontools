@@ -4,9 +4,9 @@ svc \- control a supervised service
 .SH SYNOPSIS
 .B svc
 [
-.B \-udorspchitk
+.B \-udorspchaitk
 ]
-.I dir
+.I dir ...
 .SH DESCRIPTION
 .B svc
 changes the status of a
@@ -16,6 +16,11 @@ service.
 is the same directory
 used for
 .BR supervise .
+
+You can list several
+.IR dir s.
+.B svc
+will change the status of each service in turn.
 .SH OPTIONS
 .TP 5
 .B \-u
@@ -56,6 +61,10 @@ Send the service a CONT signal.
 .B \-h
 Hangup.
 Send the service a HUP signal.
+.TP
+.B \-a
+Alarm.
+Send the service an ALRM signal.
 .TP
 .B \-i
 Interrupt.

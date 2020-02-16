@@ -12,8 +12,7 @@ accustamp.1
 
 accustamp.o: \
 compile accustamp.c accustamp.c accustamp.c substdio.h accustamp.c \
-subfd.h substdio.h substdio.h subfd.h accustamp.c fmt.h accustamp.c \
-exit.h accustamp.c
+fmt.h accustamp.c readwrite.h accustamp.c exit.h accustamp.c
 	./compile accustamp.c
 
 alloc.a: \
@@ -359,9 +358,39 @@ subfd.h sgetopt.c sgetopt.h sgetopt.h subgetopt.h sgetopt.h sgetopt.c \
 subgetopt.h subgetopt.h sgetopt.c
 	./compile sgetopt.c
 
+shar: \
+FILES BLURB README TODO THANKS CHANGES FILES BIN MAN VERSION SYSDEPS \
+Makefile supervise.c supervise.1 svc.c svc.1 accustamp.c accustamp.1 \
+tailocal.c tailocal.1 cyclog.c cyclog.1 setuser.c setuser.1 conf-cc \
+conf-ld find-systype.sh make-compile.sh make-load.sh make-makelib.sh \
+trycpp.c warn-auto.sh INSTALL conf-bin conf-man auto-str.c auto-int.c \
+auto-int8.c auto-uid.c auto-gid.c install.c instcheck.c substdio.h \
+substdio.c substdi.c substdo.c substdio_copy.c subfd.h subfderr.c \
+subfdouts.c subfdout.c subfdins.c subfdin.c readwrite.h exit.h \
+gen_alloc.h gen_allocdefs.h stralloc.3 stralloc.h stralloc_eady.c \
+stralloc_pend.c stralloc_copy.c stralloc_opyb.c stralloc_opys.c \
+stralloc_cat.c stralloc_catb.c stralloc_cats.c stralloc_arts.c \
+getln.3 getln.h getln.c getln2.3 getln2.c open.h open_append.c \
+open_excl.c open_read.c open_trunc.c open_write.c strerr.h \
+strerr_sys.c strerr_die.c byte.h byte_chr.c byte_copy.c byte_cr.c \
+str.h str_len.c error.3 error_str.3 error.h error.c error_str.c \
+alloc.3 alloc.h alloc.c alloc_re.c fmt.h fmt_str.c fmt_uint.c \
+fmt_uint0.c fmt_ulong.c scan.h scan_ulong.c scan_8long.c fifo_make.3 \
+fifo.h fifo.c trymkffo.c sgetopt.3 sgetopt.h sgetopt.c subgetopt.3 \
+subgetopt.h subgetopt.c lock.h lock_exnb.c tryflock.c coe.3 coe.h \
+coe.c fork.h1 fork.h2 tryvfork.c ndelay.h ndelay.c ndelay_off.c \
+select.h1 select.h2 trysysel.c sig.h sig_block.c sig_catch.c \
+sig_child.c trysgact.c trysgprm.c wait.3 wait.h wait_nohang.c \
+trywaitp.c now.3 now.h now.c datetime.3 datetime.h direntry.3 \
+direntry.h1 direntry.h2 trydrent.c prot.h prot.c chkshsgr.c \
+warn-shsgr tryshsgr.c
+	shar -m `cat FILES` > shar
+	chmod 400 shar
+
 sig.a: \
-makelib sig_block.o sig_catch.o sig_child.o
-	./makelib sig.a sig_block.o sig_catch.o sig_child.o
+makelib sig_block.o sig_catch.o sig_child.o sig_pipe.o
+	./makelib sig.a sig_block.o sig_catch.o sig_child.o \
+	sig_pipe.o
 
 sig_block.o: \
 compile sig_block.c sig_block.c sig.h sig_block.c hassgprm.h \
@@ -376,6 +405,10 @@ sig_catch.c
 sig_child.o: \
 compile sig_child.c sig_child.c sig.h sig_child.c
 	./compile sig_child.c
+
+sig_pipe.o: \
+compile sig_pipe.c sig_pipe.c sig.h sig_pipe.c
+	./compile sig_pipe.c
 
 str.a: \
 makelib str_len.o byte_chr.o byte_copy.o byte_cr.o
@@ -511,11 +544,10 @@ substdo.c error.h substdo.c
 
 supervise: \
 load supervise.o now.o coe.o fifo.o ndelay.a wait.a sig.a open.a \
-lock.a strerr.a getopt.a substdio.a stralloc.a alloc.a error.a str.a \
-fs.a
+lock.a strerr.a getopt.a substdio.a error.a str.a fs.a
 	./load supervise now.o coe.o fifo.o ndelay.a wait.a sig.a \
-	open.a lock.a strerr.a getopt.a substdio.a stralloc.a \
-	alloc.a error.a str.a fs.a 
+	open.a lock.a strerr.a getopt.a substdio.a error.a str.a \
+	fs.a 
 
 supervise.0: \
 supervise.1
@@ -527,14 +559,14 @@ fmt.h supervise.c sig.h supervise.c coe.h supervise.c open.h \
 supervise.c wait.h supervise.c fork.h supervise.c lock.h supervise.c \
 fifo.h supervise.c error.h supervise.c select.h select.h select.h \
 select.h supervise.c strerr.h supervise.c sgetopt.h subgetopt.h \
-sgetopt.h supervise.c stralloc.h gen_alloc.h stralloc.h supervise.c \
-substdio.h supervise.c readwrite.h supervise.c
+sgetopt.h supervise.c substdio.h supervise.c readwrite.h supervise.c
 	./compile supervise.c
 
 svc: \
-load svc.o open.a ndelay.a getopt.a strerr.a substdio.a error.a str.a
-	./load svc open.a ndelay.a getopt.a strerr.a substdio.a \
-	error.a str.a 
+load svc.o open.a sig.a ndelay.a getopt.a strerr.a substdio.a error.a \
+str.a
+	./load svc open.a sig.a ndelay.a getopt.a strerr.a \
+	substdio.a error.a str.a 
 
 svc.0: \
 svc.1
@@ -543,7 +575,7 @@ svc.1
 svc.o: \
 compile svc.c ndelay.h svc.c strerr.h svc.c open.h svc.c sgetopt.h \
 subgetopt.h sgetopt.h svc.c substdio.h svc.c readwrite.h svc.c exit.h \
-svc.c byte.h svc.c
+svc.c byte.h svc.c sig.h svc.c
 	./compile svc.c
 
 systype: \

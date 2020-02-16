@@ -10,8 +10,8 @@ char num[FMT_ULONG];
 void get(ch)
 char *ch;
 {
-  if (substdio_get(subfdinsmall,ch,1) != 1) {
-    substdio_flush(subfdoutsmall);
+  if (substdio_get(subfdin,ch,1) != 1) {
+    substdio_flush(subfdout);
     _exit(0);
   }
 }
@@ -20,7 +20,7 @@ void out(buf,len)
 char *buf;
 int len;
 {
-  if (substdio_put(subfdoutsmall,buf,len) == -1)
+  if (substdio_put(subfdout,buf,len) == -1)
     _exit(111);
 }
 

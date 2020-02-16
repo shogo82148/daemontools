@@ -1,36 +1,53 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include "substdio.h"
-#include "subfd.h"
 #include "fmt.h"
+#include "readwrite.h"
 #include "exit.h"
 
-void out(buf,len) char *buf; unsigned int len;
+int mywrite(fd,buf,len)
+int fd;
+char *buf;
+int len;
 {
-  if (substdio_put(subfdoutsmall,buf,len) == -1) _exit(111);
+  int w;
+  w = write(fd,buf,len);
+  if (w == -1) _exit(111);
+  return w;
 }
+
+char outbuf[1024];
+substdio ssout = SUBSTDIO_FDBUF(mywrite,1,outbuf,sizeof outbuf);
+
+int myread(fd,buf,len) int fd; char *buf; int len;
+{
+  substdio_flush(&ssout);
+  return read(fd,buf,len);
+}
+
+char inbuf[1024];
+substdio ssin = SUBSTDIO_FDBUF(myread,0,inbuf,sizeof inbuf);
 
 char num[FMT_ULONG];
 
 void main()
 {
   struct timeval tv;
-  int flagbeginline;
   char ch;
 
-  flagbeginline = 1;
-  while (substdio_get(subfdinsmall,&ch,1) == 1) {
-    if (flagbeginline) {
-      gettimeofday(&tv,(struct timezone *) 0);
-      out(num,fmt_ulong(num,(unsigned long) tv.tv_sec));
-      out(".",1);
-      out(num,fmt_uint0(num,(unsigned int) tv.tv_usec,6));
-      out(" ",1);
-      flagbeginline = 0;
+  for (;;) {
+    if (substdio_get(&ssin,&ch,1) != 1) _exit(0);
+
+    gettimeofday(&tv,(struct timezone *) 0);
+    substdio_put(&ssout,num,fmt_ulong(num,(unsigned long) tv.tv_sec));
+    substdio_put(&ssout,".",1);
+    substdio_put(&ssout,num,fmt_uint0(num,(unsigned int) tv.tv_usec,6));
+    substdio_put(&ssout," ",1);
+
+    for (;;) {
+      substdio_BPUTC(&ssout,ch);
+      if (ch == '\n') break;
+      if (substdio_get(&ssin,&ch,1) != 1) _exit(0);
     }
-    out(&ch,1);
-    if (ch == '\n') flagbeginline = 1;
   }
-  substdio_flush(subfdoutsmall);
-  _exit(0);
 }

@@ -131,6 +131,7 @@ sig.h
 sig_block.c
 sig_catch.c
 sig_child.c
+sig_pipe.c
 trysgact.c
 trysgprm.c
 wait.3
@@ -146,10 +147,8 @@ direntry.3
 direntry.h1
 direntry.h2
 trydrent.c
-chkshsgr=x
 prot.h
 prot.c
-hasshsgr.h.do
 chkshsgr.c
 warn-shsgr
 tryshsgr.c

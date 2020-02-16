@@ -1,1 +1,18 @@
+19970717 daemontools 0.52, alpha.
+19970717 code: cleaned up main loop in accustamp.c.
+19970717 code: eliminated subfd from accustamp.
+19970717 code: in cyclog, inserted 0s in filenames so that the naive
+         filename sorting algorithm will produce correct results for the
+	 next few million years.
+19970717 code: changed svc to ignore SIGPIPE.
+19970717 code: changed tailocal from subfdinsmall, subfdoutsmall to
+         subfdin, subfdout.
+19970717 doc: added tests to INSTALL.
+19970717 code: added multiple-dir support to svc.
+19970717 code: improved some error messages.
+19970717 code: cleaned up getopt loop in svc.c.
+19970717 code: eliminated marktime in supervise.c.
+19970714 code: renamed want as flagwantup in supervise.c.
+19970714 code: eliminated allocation from supervise in favor of fchdir.
+19970714 code: added svc -a.
 19970714 daemontools 0.51, alpha.
