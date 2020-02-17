@@ -1,0 +1,30 @@
+.TH errorsto 1
+.SH NAME
+errorsto \- append errors to a file
+.SH SYNOPSIS
+.B errorsto
+.I file
+.I program
+[
+.I arg ...
+]
+.SH DESCRIPTION
+.B errorsto
+runs
+.I program
+with stderr writing to
+.IR file .
+It creates
+.I file
+if
+.I file
+does not exist.
+
+.B errorsto
+does not print diagnostics.
+It exits 111 quietly if it has trouble opening
+.I file
+or running
+.IR program .
+.SH "SEE ALSO"
+sh(1)

@@ -20,7 +20,7 @@ How to install:
  3. Install the programs and man pages:
        # make setup
  4. Run instcheck to make sure it doesn't print any warnings:
-       # make check
+       % make check
 
 
 How to test:
@@ -32,7 +32,7 @@ How to test:
     Each line will be prefixed with a number.
  6. Feed the current date through accustamp and tailocal:
        % date | ./accustamp | ./tailocal
-       1997/07/17 22:50:03.262569 Thu Jul 17 22:50:03 CDT 1997
+       1997-07-17 22:50:03.262569 Thu Jul 17 22:50:03 CDT 1997
     The initial date and time will agree with the rest of the line.
  7. Create two test directories:
        % mkdir test1 test2
@@ -42,27 +42,27 @@ How to test:
     test directory:
        % ./supervise -s test2 date &
     Check the status of the two services:
-       % cat test1/status test2/status
+       % ./svstat test1 test2
        869199160 up pid 5260
        869199165 down
-       % cat test1/status test2/status | ./tailocal
-       1997/07/17 23:12:40 up pid 5260
-       1997/07/17 23:12:45 down
- 8. Kill the sleep process, using the pid shown in test1/status, to
-    simulate a crash:
+       % ./svstat test1 test2 | ./tailocal
+       1997-07-17 23:12:40 up pid 5260
+       1997-07-17 23:12:45 down
+ 8. Kill the sleep process, using the pid shown by svstat, to simulate a
+    crash:
        % kill 5260
     Check the sleep status again:
-       % ./tailocal < test1/status
-       1997/07/17 23:14:22 up pid 5281
+       % ./svstat test1 | ./tailocal
+       1997-07-17 23:14:22 up pid 5281
     You will see the pid of the new sleep process.
  9. Bring the sleep service down:
        % ./svc -d test1
-       % ./tailocal < test1/status
-       1997/07/17 23:16:12 down, normally up
+       % ./svstat test1 | ./tailocal
+       1997-07-17 23:16:12 down, normally up
 10. Bring it back up:
        % ./svc -u test1
-       % ./tailocal < test1/status
-       1997/07/17 23:16:59 up pid 5306
+       % ./svstat test1 | ./tailocal
+       1997-07-17 23:16:59 up pid 5306
 11. Run the date program once:
        % ./svc -o test2
        Thu Jul 17 23:17:30 CDT 1997
@@ -76,14 +76,19 @@ How to test:
        Thu Jul 17 23:17:49 CDT 1997
        Thu Jul 17 23:17:50 CDT 1997
     The date will be printed 4 or 5 times, about once per second.
-13. Bring both services down:
-       % ./svc -d test1 test2
-    Destroy both services: find the supervise processes and kill them.
+13. Check whether testfilelock detects that supervise is running:
+       % ./testfilelock test1/lock && echo 'supervise is running'
+       supervise is running
+14. Bring both services down, and destroy the supervise processes:
+       % ./svc -dx test1 test2
     Then try to use svc:
        % ./svc -u test1 test2
        svc: warning: unable to control test1: device not configured
        svc: warning: unable to control test2: device not configured
-14. Create another test directory:
+    Try testfilelock again:
+       % ./testfilelock test1/lock || echo 'supervise is not running'
+       supervise is not running
+15. Create another test directory:
        % mkdir test3
     Feed some text to cyclog:
        % ./cyclog -s 2000 -m 80 -n 5 test3 < Makefile
@@ -96,18 +101,36 @@ How to test:
        -r--r--r--  1 djb        1929 Jul 18 00:06 @00000869202384
        -r--r--r--  1 djb        1945 Jul 18 00:06 @00000869202385
        -r--r--r--  1 djb        1236 Jul 18 00:06 @00000869202386
-15. Find the total size of the files in test3:
+16. Find the total size of the files in test3:
        % cat test3/* > test3.cat
        % wc -c test3.cat
        9022 test3.cat
     Extract that many bytes from the end of the cyclog input, and
     compare it to the results stored in test3:
        % tail -9022c Makefile | cmp - test3.cat
-16. As root, check setuser's group membership assignment:
+17. As root, check setuser's group membership assignment:
        # ./setuser joe groups
     Replace joe with your username. You should see your normal gid and
     nothing else. Under Solaris, make sure to use /usr/ucb/groups;
     /usr/bin/groups is broken.
+18. Run fifo to print everything fed to a file:
+       % ./fifo testp &
+    Make sure that it works:
+       % echo hi > testp
+       hi
+19. Check whether ./usually /dev/null echoes lines to stderr:
+       % echo hi | ./errorsto testp ./usually /dev/null > /dev/null
+       hi
+    Check whether it skips blank lines:
+       % echo '' | ./errorsto testp ./usually /dev/null > /dev/null
+20. Check whether ./usually rereads its patterns on a HUP:
+       % echo two > test.usu
+       % ( echo three; sleep 3; echo three >> test.usu; sleep 1; \
+	   ./svc -h test1; sleep 2; echo three; sleep 2; ./svc -kx test1 ) \
+	 | ./errorsto testp ./supervise test1 ./usually test.usu
+    You should see a pause of one second, ``three'' twice, a pause of
+    five seconds, ``three'' once, and a pause of two seconds. Now kill
+    the background fifo process from step 18.
 
 
 That's it! To report success:

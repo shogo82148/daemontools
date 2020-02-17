@@ -4,7 +4,7 @@ supervise \- start and monitor a service
 .SH SYNOPSIS
 .B supervise
 [
-.B \-rsudo
+.B \-rsudox
 ]
 .I dir
 .I program
@@ -24,26 +24,31 @@ if
 dies.
 
 .B supervise
-maintains a line of readable status information in
+maintains status information, in a binary format, in
 .IR dir\fB/status .
 It uses
 .I dir\fB/status.new
 as a temporary file so that
 .I dir\fB/status
 is never partially written.
+.I dir
+must already exist and be writable for
+.BR supervise .
+
 .B supervise
 accepts commands from
 .B svc
 through the
 .I dir\fB/svcontrol
 file.
+
 .B supervise
 locks
-.I dir\fB/lock
-to prevent confusion.
-.I dir
-must already exist and be writable for
-.BR supervise .
+.IR dir\fB/lock ,
+so two copies of
+.B supervise
+cannot run with the same
+.IR dir .
 
 .B supervise
 pauses for a second before starting
@@ -81,5 +86,12 @@ Start
 .I program
 immediately.
 If it stops, do not restart it.
+.TP
+.B \-x
+Exit as soon as
+.I program
+stops.
 .SH "SEE ALSO"
-svc(1)
+svc(1),
+svstat(1),
+testfilelock(1)

@@ -1,0 +1,23 @@
+.TH testfilelock 1
+.SH NAME
+testfilelock \- check whether a file is locked
+.SH SYNOPSIS
+.B testfilelock
+.I fn
+.SH DESCRIPTION
+.B testfilelock
+attempts to obtain a lock on
+.IR fn .
+.I fn
+must exist and be writable for
+.BR testfilelock .
+
+If
+.B testfilelock
+can obtain the lock,
+it immediately exits 100.
+Otherwise it immediately exits 0.
+On temporary errors it exits 111.
+.SH "SEE ALSO"
+flock(2),
+lockf(3)

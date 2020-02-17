@@ -1,7 +1,7 @@
-supervise monitors a service. It starts the service, restarts the
-service if it dies, and maintains a one-line status report. The
-companion svc program stops, pauses, or restarts the service on sysadmin
-request.
+supervise monitors a service. It starts the service and restarts the
+service if it dies. The companion svc program stops, pauses, or restarts
+the service on sysadmin request. The svstat program prints a one-line
+status report.
 
 cyclog writes a log to disk. It automatically synchronizes the log every
 100KB (by default) to guarantee data integrity after a crash. It
@@ -12,6 +12,10 @@ data.
 accustamp puts a precise timestamp on each line of input. The timestamp
 is a numeric TAI timestamp with microsecond precision. The companion
 tailocal program converts TAI timestamps to local time.
+
+usually watches a log for lines that do not match specified patterns,
+copying those lines to stderr. The companion errorsto program redirects
+stderr to a file.
 
 setuser runs a program under a user's uid and gid. Unlike su, setuser
 does not gain privileges; it does not check passwords, and it cannot be

@@ -29,9 +29,9 @@ char **argv;
 
   sig_pipeignore();
 
-  while ((opt = getopt(argc,argv,"udorspchaitk")) != opteof)
+  while ((opt = getopt(argc,argv,"udorspchaitkx")) != opteof)
     if (opt == '?')
-      strerr_die1x(100,"svc: usage: svc [ -udorspchaitk ] dir ...");
+      strerr_die1x(100,"svc: usage: svc [ -udorspchaitkx ] dir ...");
     else
       if (datalen < sizeof data)
         if (byte_chr(data,datalen,opt) == datalen)

@@ -1,3 +1,8 @@
+19970805 daemontools 0.53, alpha.
+19970804 code: added fifo, errorsto, usually, testfilelock.
+19970802 code: changed supervise status to binary; added svstat.
+19970802 code: changed tailocal to ISO format.
+19970802 code: added svc -x, supervise -x.
 19970717 daemontools 0.52, alpha.
 19970717 code: cleaned up main loop in accustamp.c.
 19970717 code: eliminated subfd from accustamp.

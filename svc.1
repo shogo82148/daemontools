@@ -4,7 +4,7 @@ svc \- control a supervised service
 .SH SYNOPSIS
 .B svc
 [
-.B \-udorspchaitk
+.B \-udorspchaitkx
 ]
 .I dir ...
 .SH DESCRIPTION
@@ -77,5 +77,10 @@ Send the service a TERM signal.
 .B \-k
 Kill.
 Send the service a KILL signal.
+.TP
+.B \-x
+Exit.
+.B supervise
+will quit as soon as the service is down.
 .SH "SEE ALSO"
 supervise(1)

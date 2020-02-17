@@ -1,6 +1,7 @@
+#include <sys/types.h>
+#include <sys/time.h>
 #include <signal.h>
 #include "now.h"
-#include "fmt.h"
 #include "sig.h"
 #include "coe.h"
 #include "open.h"
@@ -19,9 +20,10 @@
 #define WARNING "supervise: warning: "
 void die_usage()
 {
-  strerr_die1x(100,"supervise: usage: supervise [ -rsudo ] dir program args ...");
+  strerr_die1x(100,"supervise: usage: supervise [ -rsudox ] dir program args ...");
 }
 
+int flagexit = 0;
 int flagnormallyup = 1;
 int flagwant = 1;
 int flagwantup = 1;
@@ -34,8 +36,7 @@ int fdcontrolwrite;
 int fdcontrol;
 int selfpipe[2];
 
-char mark[FMT_ULONG];
-char pidstr[FMT_ULONG];
+unsigned char status[23];
 
 void trigger()
 {
@@ -44,55 +45,57 @@ void trigger()
 
 void statusmark()
 {
-  mark[fmt_ulong(mark,(unsigned long) now())] = 0;
-  pidstr[fmt_ulong(pidstr,(unsigned long) pid)] = 0;
+  struct timeval tv;
+  unsigned long u;
+
+  gettimeofday(&tv,(struct timezone *) 0);
+  u = tv.tv_sec;
+  status[7] = u; u >>= 8;
+  status[6] = u; u >>= 8;
+  status[5] = u; u >>= 8;
+  status[4] = u; u >>= 8;
+  status[3] = u; u >>= 8;
+  status[2] = u; u >>= 8;
+  status[1] = u; u >>= 8;
+  status[0] = u + 64; /* TAI64 */
+  u = tv.tv_usec * 1000;
+  status[11] = u; u >>= 8;
+  status[10] = u; u >>= 8;
+  status[9] = u; u >>= 8;
+  status[8] = u;
+  status[15] = status[14] = status[13] = status[12] = 0;
+  u = (unsigned long) pid;
+  status[16] = u; u >>= 8;
+  status[17] = u; u >>= 8;
+  status[18] = u; u >>= 8;
+  status[19] = u;
 }
 
 void announce()
 {
   int fd;
-  substdio ss;
-  char ssbuf[64];
+  int r;
+
+  status[20] = flagnormallyup;
+  status[21] = (pid ? flagpaused : 0);
+  status[22] = (flagwant ? (flagwantup ? 'u' : 'd') : 0);
 
   fd = open_trunc("status.new");
   if (fd == -1) {
     strerr_warn2(WARNING,"unable to open status.new: ",&strerr_sys);
     return;
   }
-  substdio_fdbuf(&ss,write,fd,ssbuf,sizeof ssbuf);
 
-  if (substdio_puts(&ss,mark) == -1) goto writeerr;
-
-  if (pid) {
-    if (substdio_puts(&ss," up pid ") == -1) goto writeerr;
-    if (substdio_puts(&ss,pidstr) == -1) goto writeerr;
-    if (!flagnormallyup)
-      if (substdio_puts(&ss,", normally down") == -1) goto writeerr;
-  }
-  else {
-    if (substdio_puts(&ss," down") == -1) goto writeerr;
-    if (flagnormallyup)
-      if (substdio_puts(&ss,", normally up") == -1) goto writeerr;
-  }
-
-  if (pid && flagpaused)
-    if (substdio_puts(&ss,", paused") == -1) goto writeerr;
-  if (flagwant && flagwantup && !pid)
-    if (substdio_puts(&ss,", want up") == -1) goto writeerr;
-  if (flagwant && !flagwantup && pid)
-    if (substdio_puts(&ss,", want down") == -1) goto writeerr;
-
-  if (substdio_puts(&ss,"\n")) goto writeerr;
-  if (substdio_flush(&ss) == -1) goto writeerr;
+  r = write(fd,status,sizeof status);
+  if (r == -1)
+    strerr_warn2(WARNING,"unable to write status.new: ",&strerr_sys);
+  else if (r < sizeof status)
+    strerr_warn2(WARNING,"unable to write status.new: partial write",0);
   close(fd);
-  if (rename("status.new","status") == -1)
-    strerr_warn2(WARNING,"unable to rename status.new to status: ",&strerr_sys);
-  return;
 
-  writeerr:
-  strerr_warn2(WARNING,"unable to write status.new: ",&strerr_sys);
-  close(fd);
-  return;
+  if (r == sizeof status)
+    if (rename("status.new","status") == -1)
+      strerr_warn2(WARNING,"unable to rename status.new to status: ",&strerr_sys);
 }
 
 void trystart(argv)
@@ -126,13 +129,14 @@ char **argv;
   int opt;
   char *dir;
 
-  while ((opt = getopt(argc,argv,"rsudo")) != opteof)
+  while ((opt = getopt(argc,argv,"rsudox")) != opteof)
     switch(opt) {
       case 'r': flagnormallyup = 1;
       case 'u': flagwant = 1; flagwantup = 1; break;
       case 's': flagnormallyup = 0;
       case 'd': flagwant = 1; flagwantup = 0; break;
       case 'o': flagwant = 0; break;
+      case 'x': flagexit = 1; break;
       default: die_usage();
     }
   argv += optind;
@@ -189,6 +193,8 @@ char **argv;
 
     announce();
 
+    if (flagexit && !pid) _exit(0);
+
     FD_ZERO(&rfds);
     FD_SET(selfpipe[0],&rfds);
     nfds = selfpipe[0] + 1;
@@ -203,6 +209,7 @@ char **argv;
 	if (!r || ((r == -1) && (errno != error_intr))) break;
 	if (r == pid) { pid = 0; statusmark(); }
       }
+      if (flagexit && !pid) { announce(); _exit(0); }
       if (!pid) if (flagwant) if (flagwantup) trystart(argv);
     }
 
@@ -223,6 +230,7 @@ char **argv;
 	case 'c': if (pid) kill(pid,SIGCONT); flagpaused = 0; break;
 	case 'r': flagnormallyup = 1; break;
 	case 's': flagnormallyup = 0; break;
+	case 'x': flagexit = 1; break;
       }
   }
 }

@@ -104,9 +104,50 @@ error_str.o: \
 compile error_str.c error_str.c error.h error_str.c
 	./compile error_str.c
 
+errorsto: \
+load errorsto.o ndelay.a open.a fd.a
+	./load errorsto ndelay.a open.a fd.a 
+
+errorsto.0: \
+errorsto.1
+	nroff -man errorsto.1 > errorsto.0
+
+errorsto.o: \
+compile errorsto.c open.h errorsto.c fd.h errorsto.c exit.h \
+errorsto.c ndelay.h errorsto.c
+	./compile errorsto.c
+
+fd.a: \
+makelib fd_copy.o fd_move.o
+	./makelib fd.a fd_copy.o fd_move.o
+
+fd_copy.o: \
+compile fd_copy.c fd_copy.c fd.h fd_copy.c
+	./compile fd_copy.c
+
+fd_move.o: \
+compile fd_move.c fd.h fd_move.c
+	./compile fd_move.c
+
+fifo: \
+load fifo.o fifomain.o ndelay.a open.a strerr.a substdio.a error.a \
+str.a
+	./load fifo fifomain.o ndelay.a open.a strerr.a substdio.a \
+	error.a str.a 
+
+fifo.0: \
+fifo.1
+	nroff -man fifo.1 > fifo.0
+
 fifo.o: \
 compile fifo.c fifo.c fifo.c hasmkffo.h fifo.c fifo.h fifo.c
 	./compile fifo.c
+
+fifomain.o: \
+compile fifomain.c fifomain.c fifomain.c fifo.h fifomain.c open.h \
+fifomain.c strerr.h fifomain.c error.h fifomain.c substdio.h \
+fifomain.c readwrite.h fifomain.c ndelay.h fifomain.c
+	./compile fifomain.c
 
 find-systype: \
 find-systype.sh auto-ccld.sh
@@ -231,7 +272,8 @@ strerr.h instcheck.c byte.h instcheck.c
 	./compile instcheck.c
 
 it: \
-supervise svc cyclog accustamp tailocal setuser
+supervise svc svstat testfilelock cyclog fifo errorsto usually \
+accustamp tailocal setuser
 
 load: \
 make-load warn-auto.sh systype
@@ -269,7 +311,8 @@ make-makelib warn-auto.sh systype
 	chmod 755 makelib
 
 man: \
-supervise.0 svc.0 cyclog.0 accustamp.0 tailocal.0 setuser.0
+supervise.0 svc.0 svstat.0 testfilelock.0 cyclog.0 fifo.0 errorsto.0 \
+usually.0 accustamp.0 tailocal.0 setuser.0
 
 ndelay.a: \
 makelib ndelay.o ndelay_off.o
@@ -380,17 +423,21 @@ fifo.h fifo.c trymkffo.c sgetopt.3 sgetopt.h sgetopt.c subgetopt.3 \
 subgetopt.h subgetopt.c lock.h lock_exnb.c tryflock.c coe.3 coe.h \
 coe.c fork.h1 fork.h2 tryvfork.c ndelay.h ndelay.c ndelay_off.c \
 select.h1 select.h2 trysysel.c sig.h sig_block.c sig_catch.c \
-sig_child.c trysgact.c trysgprm.c wait.3 wait.h wait_nohang.c \
-trywaitp.c now.3 now.h now.c datetime.3 datetime.h direntry.3 \
-direntry.h1 direntry.h2 trydrent.c prot.h prot.c chkshsgr.c \
-warn-shsgr tryshsgr.c
+sig_child.c sig_pipe.c trysgact.c trysgprm.c wait.3 wait.h \
+wait_nohang.c trywaitp.c now.3 now.h now.c datetime.3 datetime.h \
+direntry.3 direntry.h1 direntry.h2 trydrent.c prot.h prot.c \
+chkshsgr.c warn-shsgr tryshsgr.c
 	shar -m `cat FILES` > shar
 	chmod 400 shar
 
 sig.a: \
-makelib sig_block.o sig_catch.o sig_child.o sig_pipe.o
-	./makelib sig.a sig_block.o sig_catch.o sig_child.o \
-	sig_pipe.o
+makelib sig_hup.o sig_block.o sig_catch.o sig_child.o sig_pipe.o
+	./makelib sig.a sig_hup.o sig_block.o sig_catch.o \
+	sig_child.o sig_pipe.o
+
+sig_alarm.o: \
+compile sig_alarm.c sig_alarm.c sig.h sig_alarm.c
+	./compile sig_alarm.c
 
 sig_block.o: \
 compile sig_block.c sig_block.c sig.h sig_block.c hassgprm.h \
@@ -406,9 +453,24 @@ sig_child.o: \
 compile sig_child.c sig_child.c sig.h sig_child.c
 	./compile sig_child.c
 
+sig_hup.o: \
+compile sig_hup.c sig_hup.c sig.h sig_hup.c
+	./compile sig_hup.c
+
 sig_pipe.o: \
 compile sig_pipe.c sig_pipe.c sig.h sig_pipe.c
 	./compile sig_pipe.c
+
+slurp.o: \
+compile slurp.c stralloc.h gen_alloc.h stralloc.h slurp.c slurp.h \
+slurp.c error.h slurp.c open.h slurp.c
+	./compile slurp.c
+
+slurpclose.o: \
+compile slurpclose.c stralloc.h gen_alloc.h stralloc.h slurpclose.c \
+readwrite.h slurpclose.c slurpclose.h slurpclose.c error.h \
+slurpclose.c
+	./compile slurpclose.c
 
 str.a: \
 makelib str_len.o byte_chr.o byte_copy.o byte_cr.o
@@ -543,23 +605,23 @@ substdo.c error.h substdo.c
 	./compile substdo.c
 
 supervise: \
-load supervise.o now.o coe.o fifo.o ndelay.a wait.a sig.a open.a \
-lock.a strerr.a getopt.a substdio.a error.a str.a fs.a
-	./load supervise now.o coe.o fifo.o ndelay.a wait.a sig.a \
-	open.a lock.a strerr.a getopt.a substdio.a error.a str.a \
-	fs.a 
+load supervise.o coe.o fifo.o ndelay.a wait.a sig.a open.a lock.a \
+strerr.a getopt.a substdio.a error.a str.a
+	./load supervise coe.o fifo.o ndelay.a wait.a sig.a open.a \
+	lock.a strerr.a getopt.a substdio.a error.a str.a 
 
 supervise.0: \
 supervise.1
 	nroff -man supervise.1 > supervise.0
 
 supervise.o: \
-compile supervise.c supervise.c now.h datetime.h now.h supervise.c \
-fmt.h supervise.c sig.h supervise.c coe.h supervise.c open.h \
-supervise.c wait.h supervise.c fork.h supervise.c lock.h supervise.c \
-fifo.h supervise.c error.h supervise.c select.h select.h select.h \
-select.h supervise.c strerr.h supervise.c sgetopt.h subgetopt.h \
-sgetopt.h supervise.c substdio.h supervise.c readwrite.h supervise.c
+compile supervise.c supervise.c supervise.c supervise.c now.h \
+datetime.h now.h supervise.c sig.h supervise.c coe.h supervise.c \
+open.h supervise.c wait.h supervise.c fork.h supervise.c lock.h \
+supervise.c fifo.h supervise.c error.h supervise.c select.h select.h \
+select.h select.h supervise.c strerr.h supervise.c sgetopt.h \
+subgetopt.h sgetopt.h supervise.c substdio.h supervise.c readwrite.h \
+supervise.c
 	./compile supervise.c
 
 svc: \
@@ -578,6 +640,20 @@ subgetopt.h sgetopt.h svc.c substdio.h svc.c readwrite.h svc.c exit.h \
 svc.c byte.h svc.c sig.h svc.c
 	./compile svc.c
 
+svstat: \
+load svstat.o strerr.a open.a substdio.a error.a str.a fs.a
+	./load svstat strerr.a open.a substdio.a error.a str.a \
+	fs.a 
+
+svstat.0: \
+svstat.1
+	nroff -man svstat.1 > svstat.0
+
+svstat.o: \
+compile svstat.c strerr.h svstat.c open.h svstat.c substdio.h \
+svstat.c readwrite.h svstat.c exit.h svstat.c fmt.h svstat.c
+	./compile svstat.c
+
 systype: \
 find-systype trycpp.c
 	./find-systype > systype
@@ -595,6 +671,37 @@ compile tailocal.c tailocal.c tailocal.c substdio.h tailocal.c \
 subfd.h substdio.h substdio.h subfd.h tailocal.c exit.h tailocal.c \
 fmt.h tailocal.c
 	./compile tailocal.c
+
+testfilelock: \
+load testfilelock.o open.a lock.a strerr.a substdio.a error.a str.a
+	./load testfilelock open.a lock.a strerr.a substdio.a \
+	error.a str.a 
+
+testfilelock.0: \
+testfilelock.1
+	nroff -man testfilelock.1 > testfilelock.0
+
+testfilelock.o: \
+compile testfilelock.c lock.h testfilelock.c strerr.h testfilelock.c \
+exit.h testfilelock.c error.h testfilelock.c
+	./compile testfilelock.c
+
+usually: \
+load usually.o slurp.o slurpclose.o open.a sig.a strerr.a substdio.a \
+stralloc.a alloc.a error.a str.a
+	./load usually slurp.o slurpclose.o open.a sig.a strerr.a \
+	substdio.a stralloc.a alloc.a error.a str.a 
+
+usually.0: \
+usually.1
+	nroff -man usually.1 > usually.0
+
+usually.o: \
+compile usually.c substdio.h usually.c readwrite.h usually.c strerr.h \
+usually.c sig.h usually.c stralloc.h gen_alloc.h stralloc.h usually.c \
+alloc.h usually.c gen_allocdefs.h gen_allocdefs.h gen_allocdefs.h \
+usually.c slurp.h usually.c
+	./compile usually.c
 
 wait.a: \
 makelib wait_nohang.o

@@ -42,9 +42,9 @@ void main()
     }
     t = localtime(&secs);
     out(num,fmt_ulong(num,(unsigned long) (1900 + t->tm_year)));
-    out("/",1);
+    out("-",1);
     out(num,fmt_uint0(num,(unsigned int) (1 + t->tm_mon),2));
-    out("/",1);
+    out("-",1);
     out(num,fmt_uint0(num,(unsigned int) t->tm_mday,2));
     out(" ",1);
     out(num,fmt_uint0(num,(unsigned int) t->tm_hour,2));
