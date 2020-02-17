@@ -1,9 +1,6 @@
 #include "match.h"
 
-int match(pattern,buf,len)
-char *pattern;
-char *buf;
-int len;
+int match(char *pattern,char *buf,unsigned int len)
 {
   char ch;
 

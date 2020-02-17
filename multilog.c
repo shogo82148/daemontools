@@ -3,8 +3,7 @@
 #include "direntry.h"
 #include "alloc.h"
 #include "exit.h"
-#include "substdio.h"
-#include "subfd.h"
+#include "buffer.h"
 #include "strerr.h"
 #include "error.h"
 #include "open.h"
@@ -16,21 +15,20 @@
 #include "fork.h"
 #include "wait.h"
 #include "coe.h"
+#include "env.h"
 #include "sig.h"
 #include "match.h"
 
 #define FATAL "multilog: fatal: "
 #define WARNING "multilog: warning: "
 
-void pause3(s1,s2,s3)
-char *s1; char *s2; char *s3;
+void pause3(char *s1,char *s2,char *s3)
 {
   strerr_warn4(WARNING,s1,s2,s3,&strerr_sys);
   sleep(5);
 }
 
-void pause5(s1,s2,s3,s4,s5)
-char *s1; char *s2; char *s3; char *s4; char *s5;
+void pause5(char *s1,char *s2,char *s3,char *s4,char *s5)
 {
   strerr_warn6(WARNING,s1,s2,s3,s4,s5,&strerr_sys);
   sleep(5);
@@ -40,8 +38,7 @@ int fdstartdir;
 
 int *f;
 
-void f_init(script)
-char **script;
+void f_init(char **script)
 {
   int i;
   int j;
@@ -73,7 +70,7 @@ char **script;
 
 struct cyclog {
   char buf[512];
-  substdio ss;
+  buffer ss;
   int fdcurrent;
   unsigned long bytes;
   unsigned long num;
@@ -88,10 +85,7 @@ int cnum;
 
 char fn[40];
 
-void finish(d,file,code)
-struct cyclog *d;
-char *file;
-char *code;
+void finish(struct cyclog *d,char *file,char *code)
 {
   DIR *dir;
   direntry *x;
@@ -157,9 +151,9 @@ char *code;
   }
 }
 
-void startprocessor(d)
-struct cyclog *d;
+void startprocessor(struct cyclog *d)
 {
+  char *args[4];
   int fd;
 
   fd = open_read("previous");
@@ -174,11 +168,15 @@ struct cyclog *d;
   fd = open_trunc("newstate");
   if (fd == -1) return;
   if (fd_move(5,fd) == -1) return;
-  execlp("/bin/sh","sh","-c",d->processor,(char *) 0);
+
+  args[0] = "sh";
+  args[1] = "-c";
+  args[2] = d->processor;
+  args[3] = 0;
+  execve("/bin/sh",args,environ);
 }
 
-void fullcurrent(d)
-struct cyclog *d;
+void fullcurrent(struct cyclog *d)
 {
   int fd;
   int pid;
@@ -245,10 +243,7 @@ struct cyclog *d;
   }
 }
 
-int c_write(pos,buf,len)
-int pos;
-char *buf;
-int len;
+int c_write(int pos,char *buf,int len)
 {
   struct cyclog *d;
   int w;
@@ -258,7 +253,7 @@ int len;
   if (d->bytes >= d->size)
     fullcurrent(d);
 
-  if (d->bytes + len >= d->size)
+  if (len >= d->size - d->bytes)
     len = d->size - d->bytes;
 
   if (d->bytes + len >= d->size - 2000) {
@@ -281,8 +276,7 @@ int len;
   return w;
 }
 
-void restart(d)
-struct cyclog *d;
+void restart(struct cyclog *d)
 {
   struct stat st;
   int fd;
@@ -348,13 +342,14 @@ struct cyclog *d;
   fd = open_append("current");
   if (fd == -1)
     strerr_die4sys(111,FATAL,"unable to write to ",d->dir,"/current: ");
+  if (fchmod(fd,0644) == -1)
+    strerr_die4sys(111,FATAL,"unable to set mode of ",d->dir,"/current: ");
   coe(fd);
   d->fdcurrent = fd;
   d->bytes = 0;
 }
 
-void c_init(script)
-char **script;
+void c_init(char **script)
 {
   int i;
   struct cyclog *d;
@@ -393,18 +388,18 @@ char **script;
       d->size = size;
       d->processor = processor;
       d->dir = script[i];
-      substdio_fdbuf(&d->ss,c_write,d - c,d->buf,sizeof d->buf);
+      buffer_init(&d->ss,c_write,d - c,d->buf,sizeof d->buf);
       restart(d);
       ++d;
     }
 }
 
-void c_quit()
+void c_quit(void)
 {
   int j;
 
   for (j = 0;j < cnum;++j) {
-    substdio_flush(&c[j].ss);
+    buffer_flush(&c[j].ss);
     while (fsync(c[j].fdcurrent) == -1)
       pause3("unable to write ",c[j].dir,"/current to disk, pausing: ");
     while (fchmod(c[j].fdcurrent,0744) == -1)
@@ -415,17 +410,17 @@ void c_quit()
 int flagexitasap = 0;
 int flagnewline = 1;
 
-int exitasap()
+void exitasap(void)
 {
   flagexitasap = 1;
 }
 
-int flushread(fd,buf,len) int fd; char *buf; int len;
+int flushread(int fd,char *buf,int len)
 {
   int j;
 
   for (j = 0;j < cnum;++j)
-    substdio_flush(&c[j].ss);
+    buffer_flush(&c[j].ss);
 
   if (!len) return 0;
   if (flagexitasap) {
@@ -440,13 +435,12 @@ int flushread(fd,buf,len) int fd; char *buf; int len;
 }
 
 char inbuf[1024];
-substdio ssin = SUBSTDIO_FDBUF(flushread,0,inbuf,sizeof inbuf);
+buffer ssin = BUFFER_INIT(flushread,0,inbuf,sizeof inbuf);
 
 char line[1001];
-int linelen;
+int linelen; /* 0 <= linelen <= 1000 */
 
-void doit(script)
-char **script;
+void doit(char **script)
 {
   int flageof;
   char ch;
@@ -461,12 +455,16 @@ char **script;
     if (script[0][0] == 't')
       flagtimestamp = 1;
 
+  for (i = 0;i <= 1000;++i) line[i] = '\n';
+  linelen = 0;
+
   flageof = 0;
   for (;;) {
+    for (i = 0;i < linelen;++i) line[i] = '\n';
     linelen = 0;
 
     while (linelen < 1000) {
-      if (substdio_get(&ssin,&ch,1) <= 0) {
+      if (buffer_GETC(&ssin,&ch) <= 0) {
         if (!linelen) return;
         flageof = 1;
         break;
@@ -481,9 +479,6 @@ char **script;
         break;
       line[linelen++] = ch;
     }
-
-    for (i = linelen;i <= 1000;++i)
-      line[i] = '\n';
 
     flagselected = 1;
     j = 0;
@@ -502,14 +497,14 @@ char **script;
         case 'e':
           if (flagselected) {
             if (linelen > 200) {
-              substdio_put(subfderr,line,200);
-              substdio_puts(subfderr,"...\n");
+              buffer_put(buffer_2,line,200);
+              buffer_puts(buffer_2,"...\n");
             }
             else {
-              substdio_put(subfderr,line,linelen);
-              substdio_puts(subfderr,"\n");
+              buffer_put(buffer_2,line,linelen);
+              buffer_puts(buffer_2,"\n");
             }
-            substdio_flush(subfderr);
+            buffer_flush(buffer_2);
           }
           break;
         case '=':
@@ -531,11 +526,11 @@ char **script;
 
     for (j = 0;j < cnum;++j)
       if (c[j].flagselected)
-        substdio_put(&c[j].ss,line,linelen);
+        buffer_put(&c[j].ss,line,linelen);
         
     if (linelen == 1000)
       for (;;) {
-        if (substdio_get(&ssin,&ch,1) <= 0) {
+        if (buffer_GETC(&ssin,&ch) <= 0) {
           flageof = 1;
           break;
         }
@@ -543,20 +538,20 @@ char **script;
           break;
         for (j = 0;j < cnum;++j)
           if (c[j].flagselected)
-            substdio_put(&c[j].ss,&ch,1);
+            buffer_PUTC(&c[j].ss,ch);
       }
 
     for (j = 0;j < cnum;++j)
-      if (c[j].flagselected)
-        substdio_put(&c[j].ss,"\n",1);
+      if (c[j].flagselected) {
+	ch = '\n';
+        buffer_PUTC(&c[j].ss,ch);
+      }
 
     if (flageof) return;
   }
 }
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv)
 {
   umask(022);
 
@@ -565,7 +560,7 @@ char **argv;
     strerr_die2sys(111,FATAL,"unable to switch to current directory: ");
   coe(fdstartdir);
 
-  sig_termcatch(exitasap);
+  sig_catch(sig_term,exitasap);
 
   ++argv;
   f_init(argv);

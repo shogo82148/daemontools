@@ -11,7 +11,8 @@
 #include "wait.h"
 #include "coe.h"
 #include "ndelay.h"
-#include "select.h"
+#include "env.h"
+#include "iopause.h"
 #include "taia.h"
 #include "readwrite.h"
 #include "exit.h"
@@ -34,7 +35,7 @@ int flagpaused; /* defined if(pid) */
 
 char status[18];
 
-void pidchange()
+void pidchange(void)
 {
   struct taia now;
   unsigned long u;
@@ -49,7 +50,7 @@ void pidchange()
   status[15] = u;
 }
 
-void announce()
+void announce(void)
 {
   int fd;
   int r;
@@ -79,15 +80,14 @@ void announce()
     strerr_warn4(WARNING,"unable to rename ",dir,"/supervise/status.new to status: ",&strerr_sys);
 }
 
-void trigger()
+void trigger(void)
 {
   write(selfpipe[1],"",1);
 }
 
 char *run[2] = { "./run", 0 };
-char **runenv;
 
-void trystart()
+void trystart(void)
 {
   int f;
 
@@ -98,20 +98,21 @@ void trystart()
       trigger();
       return;
     case 0:
-      sleep(1);
-      execve(*run,run,runenv);
+      execve(*run,run,environ);
       strerr_die4sys(111,FATAL,"unable to start ",dir,"/run: ");
-    default:
-      flagpaused = 0;
-      pid = f;
-      pidchange();
   }
+  flagpaused = 0;
+  pid = f;
+  pidchange();
+  announce();
+  sleep(1);
 }
 
-void doit()
+void doit(void)
 {
-  fd_set rfds;
-  int nfds;
+  iopause_fd x[2];
+  struct taia deadline;
+  struct taia stamp;
   int wstat;
   int r;
   char ch;
@@ -121,22 +122,29 @@ void doit()
 
     if (flagexit && !pid) return;
 
-    FD_ZERO(&rfds);
-    FD_SET(selfpipe[0],&rfds);
-    nfds = selfpipe[0] + 1;
-    FD_SET(fdcontrol,&rfds);
-    if (fdcontrol >= nfds) nfds = fdcontrol + 1;
+    x[0].fd = selfpipe[0];
+    x[0].events = IOPAUSE_READ;
+    x[1].fd = fdcontrol;
+    x[1].events = IOPAUSE_READ;
+    taia_now(&stamp);
+    taia_uint(&deadline,3600);
+    taia_add(&deadline,&stamp,&deadline);
+    iopause(x,2,&deadline,&stamp);
 
-    select(nfds,&rfds,(fd_set *) 0,(fd_set *) 0,(struct timeval *) 0);
+    while (read(selfpipe[0],&ch,1) == 1)
+      ;
 
-    if (read(selfpipe[0],&ch,1) == 1) {
-      for (;;) {
-	r = wait_nohang(&wstat);
-	if (!r || ((r == -1) && (errno != error_intr))) break;
-	if (r == pid) { pid = 0; pidchange(); }
+    for (;;) {
+      r = wait_nohang(&wstat);
+      if (!r) break;
+      if ((r == -1) && (errno != error_intr)) break;
+      if (r == pid) {
+	pid = 0;
+	pidchange();
+	if (flagexit) return;
+	if (flagwant && flagwantup) trystart();
+	break;
       }
-      if (flagexit && !pid) return;
-      if (!pid && flagwant && flagwantup) trystart();
     }
 
     if (read(fdcontrol,&ch,1) == 1)
@@ -185,14 +193,9 @@ void doit()
   }
 }
 
-main(argc,argv,envp)
-int argc;
-char **argv;
-char **envp;
+main(int argc,char **argv)
 {
   struct stat st;
-
-  runenv = envp;
 
   dir = argv[1];
   if (!dir || argv[2])
@@ -205,7 +208,7 @@ char **envp;
   ndelay_on(selfpipe[0]);
   ndelay_on(selfpipe[1]);
 
-  sig_childcatch(trigger);
+  sig_catch(sig_child,trigger);
 
   if (chdir(dir) == -1)
     strerr_die4sys(111,FATAL,"unable to chdir to ",dir,": ");
@@ -242,7 +245,7 @@ char **envp;
     strerr_die4sys(111,FATAL,"unable to read ",dir,"/supervise/ok: ");
   coe(fdok);
 
-  if (!flagwant || flagwantup) trystart(argv);
+  if (!flagwant || flagwantup) trystart();
 
   doit();
   announce();

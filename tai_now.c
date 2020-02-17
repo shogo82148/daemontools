@@ -1,8 +1,7 @@
 #include <time.h>
 #include "tai.h"
 
-void tai_now(t)
-struct tai *t;
+void tai_now(struct tai *t)
 {
-  t->x = 4611686018427387914ULL + (uint64) time((long *) 0);
+  tai_unix(t,time((long *) 0));
 }

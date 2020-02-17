@@ -4,16 +4,16 @@
 #include "error.h"
 #include "open.h"
 #include "fmt.h"
-#include "taia.h"
-#include "substdio.h"
+#include "tai.h"
+#include "buffer.h"
 #include "readwrite.h"
 #include "exit.h"
 
 #define FATAL "svstat: fatal: "
 #define WARNING "svstat: warning: "
 
-char outbuf[1024];
-substdio ssout = SUBSTDIO_FDBUF(write,1,outbuf,sizeof outbuf);
+char bspace[1024];
+buffer b = BUFFER_INIT(write,1,bspace,sizeof bspace);
 
 char status[18];
 char strnum[FMT_ULONG];
@@ -23,22 +23,22 @@ unsigned char normallyup;
 unsigned char want;
 unsigned char paused;
 
-void doit(dir)
-char *dir;
+void doit(char *dir)
 {
   struct stat st;
   int r;
-  int i;
   int fd;
   char *x;
+  struct tai when;
+  struct tai now;
 
-  substdio_puts(&ssout,dir);
-  substdio_puts(&ssout,": ");
+  buffer_puts(&b,dir);
+  buffer_puts(&b,": ");
 
   if (chdir(dir) == -1) {
     x = error_str(errno);
-    substdio_puts(&ssout,"unable to chdir: ");
-    substdio_puts(&ssout,x);
+    buffer_puts(&b,"unable to chdir: ");
+    buffer_puts(&b,x);
     return;
   }
 
@@ -46,8 +46,8 @@ char *dir;
   if (stat("down",&st) == -1) {
     if (errno != error_noent) {
       x = error_str(errno);
-      substdio_puts(&ssout,"unable to stat down: ");
-      substdio_puts(&ssout,x);
+      buffer_puts(&b,"unable to stat down: ");
+      buffer_puts(&b,x);
       return;
     }
     normallyup = 1;
@@ -56,12 +56,12 @@ char *dir;
   fd = open_write("supervise/ok");
   if (fd == -1) {
     if (errno == error_nodevice) {
-      substdio_puts(&ssout,"supervise not running");
+      buffer_puts(&b,"supervise not running");
       return;
     }
     x = error_str(errno);
-    substdio_puts(&ssout,"unable to open supervise/ok: ");
-    substdio_puts(&ssout,x);
+    buffer_puts(&b,"unable to open supervise/ok: ");
+    buffer_puts(&b,x);
     return;
   }
   close(fd);
@@ -69,19 +69,19 @@ char *dir;
   fd = open_read("supervise/status");
   if (fd == -1) {
     x = error_str(errno);
-    substdio_puts(&ssout,"unable to open supervise/status: ");
-    substdio_puts(&ssout,x);
+    buffer_puts(&b,"unable to open supervise/status: ");
+    buffer_puts(&b,x);
     return;
   }
   r = read(fd,status,sizeof status);
   close(fd);
-  if (r == -1) {
-    substdio_puts(&ssout,"unable to read supervise/status: ");
-    substdio_puts(&ssout,x);
-    return;
-  }
   if (r < sizeof status) {
-    substdio_puts(&ssout,"unable to read supervise/status: bad format");
+    if (r == -1)
+      x = error_str(errno);
+    else
+      x = "bad format";
+    buffer_puts(&b,"unable to read supervise/status: ");
+    buffer_puts(&b,x);
     return;
   }
 
@@ -93,30 +93,35 @@ char *dir;
   paused = status[16];
   want = status[17];
 
-  if (pid) {
-    substdio_puts(&ssout,"up (pid ");
-    substdio_put(&ssout,strnum,fmt_ulong(strnum,pid));
-    substdio_puts(&ssout,")");
-    if (!normallyup)
-      substdio_puts(&ssout,", normally down");
-  }
-  else {
-    substdio_puts(&ssout,"down");
-    if (normallyup)
-      substdio_puts(&ssout,", normally up");
-  }
+  tai_unpack(status,&when);
+  tai_now(&now);
+  if (tai_less(&now,&when)) when = now;
+  tai_sub(&when,&now,&when);
 
+  if (pid) {
+    buffer_puts(&b,"up (pid ");
+    buffer_put(&b,strnum,fmt_ulong(strnum,pid));
+    buffer_puts(&b,") ");
+  }
+  else
+    buffer_puts(&b,"down ");
+
+  buffer_put(&b,strnum,fmt_ulong(strnum,tai_approx(&when)));
+  buffer_puts(&b," seconds");
+
+  if (pid && !normallyup)
+    buffer_puts(&b,", normally down");
+  if (!pid && normallyup)
+    buffer_puts(&b,", normally up");
   if (pid && paused)
-    substdio_puts(&ssout,", paused");
+    buffer_puts(&b,", paused");
   if (!pid && (want == 'u'))
-    substdio_puts(&ssout,", want up");
+    buffer_puts(&b,", want up");
   if (pid && (want == 'd'))
-    substdio_puts(&ssout,", want down");
+    buffer_puts(&b,", want down");
 }
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv)
 {
   int fdorigdir;
   char *dir;
@@ -129,12 +134,12 @@ char **argv;
 
   while (dir = *argv++) {
     doit(dir);
-    substdio_puts(&ssout,"\n");
+    buffer_puts(&b,"\n");
     if (fchdir(fdorigdir) == -1)
       strerr_die2sys(111,FATAL,"unable to set directory: ");
   }
 
-  substdio_flush(&ssout);
+  buffer_flush(&b);
 
   _exit(0);
 }

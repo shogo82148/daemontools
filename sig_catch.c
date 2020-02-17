@@ -2,9 +2,7 @@
 #include "sig.h"
 #include "hassgact.h"
 
-void sig_catch(sig,f)
-int sig;
-void (*f)();
+void sig_catch(int sig,void (*f)())
 {
 #ifdef HASSIGACTION
   struct sigaction sa;

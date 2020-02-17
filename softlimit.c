@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include "pathexec.h"
 #include "sgetopt.h"
 #include "strerr.h"
 #include "scan.h"
@@ -8,19 +9,15 @@
 
 #define FATAL "softlimit: fatal: "
 
-void die_usage()
+void die_usage(void)
 {
   strerr_die1x(100,"softlimit: usage: softlimit [-a allbytes] [-c corebytes] [-d databytes] [-f filebytes] [-l lockbytes] [-m membytes] [-o openfiles] [-p processes] [-r residentbytes] [-s stackbytes] [-t cpusecs] child");
 }
 
-void doit(resource,arg)
-int resource;
-char *arg;
+void doit(int resource,char *arg)
 {
   unsigned long u;
   struct rlimit r;
-
-  scan_ulong(arg,&u);
 
   if (getrlimit(resource,&r) == -1)
     strerr_die2sys(111,FATAL,"getrlimit failed: ");
@@ -28,6 +25,7 @@ char *arg;
   if (str_equal(arg,"="))
     r.rlim_cur = r.rlim_max;
   else {
+    if (arg[scan_ulong(arg,&u)]) die_usage();
     r.rlim_cur = u;
     if (r.rlim_cur > r.rlim_max)
       r.rlim_cur = r.rlim_max;
@@ -37,9 +35,7 @@ char *arg;
     strerr_die2sys(111,FATAL,"setrlimit failed: ");
 }
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv,char **envp)
 {
   int opt;
 
@@ -125,6 +121,6 @@ char **argv;
   argv += optind;
   if (!*argv) die_usage();
 
-  execvp(*argv,argv);
+  pathexec_run(*argv,argv,envp);
   strerr_die4sys(111,FATAL,"unable to run ",*argv,": ");
 }

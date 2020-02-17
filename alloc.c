@@ -4,7 +4,7 @@ extern char *malloc();
 extern void free();
 
 #define ALIGNMENT 16 /* XXX: assuming that this alignment is enough */
-#define SPACE 4096 /* must be multiple of ALIGNMENT */
+#define SPACE 2048 /* must be multiple of ALIGNMENT */
 
 typedef union { char irrelevant[ALIGNMENT]; double d; } aligned;
 static aligned realspace[SPACE / ALIGNMENT];

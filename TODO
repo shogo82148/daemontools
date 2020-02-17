@@ -1,4 +1,5 @@
-consider buffering system for messages that cannot be blocked
-review effect of outages on multilog
-provide some way to report the times maintained by supervise
-use libtai in tai64nlocal
+expand rts
+handle readdir errno in multilog
+document disk state diagram for a cyclic log in multilog
+use libtai local-time routines in tai64nlocal
+consider lossy buffering system for messages that cannot be blocked

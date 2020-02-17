@@ -1,10 +1,9 @@
-#include "timestamp.h"
 #include "taia.h"
+#include "timestamp.h"
 
 static char hex[16] = "0123456789abcdef";
 
-void timestamp(s)
-char s[25];
+void timestamp(char s[TIMESTAMP])
 {
   struct taia now;
   char nowpack[TAIA_PACK];

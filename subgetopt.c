@@ -1,14 +1,3 @@
-/* subgetopt.c, subgetopt.h: (yet another) improved getopt clone, inner layer
-D. J. Bernstein, djb@pobox.com.
-No dependencies.
-No system requirements.
-19970228: Cleanups.
-931129: Adapted from getopt.c.
-No known patent problems.
-
-Documentation in subgetopt.3.
-*/
-
 #define SUBGETOPTNOSHORT
 #include "subgetopt.h"
 
@@ -25,10 +14,7 @@ char *optarg = 0;
 int optproblem = 0;
 int optdone = SUBGETOPTDONE;
 
-int sgopt(argc,argv,opts)
-int argc;
-char **argv;
-char *opts;
+int sgopt(int argc,char **argv,char *opts)
 {
   int c;
   char *s;

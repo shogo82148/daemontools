@@ -3,13 +3,14 @@
 #include "direntry.h"
 #include "strerr.h"
 #include "error.h"
-#include "open.h"
 #include "fork.h"
 #include "wait.h"
 #include "coe.h"
 #include "fd.h"
-#include "exit.h"
-#include "str.h"
+#include "env.h"
+#include "pathexec.h"
+
+#define SERVICES 1000
 
 #define WARNING "svscan: warning: "
 #define FATAL "svscan: fatal: "
@@ -17,44 +18,22 @@
 struct {
   unsigned long dev;
   unsigned long ino;
+  int flagactive;
   int flaglog;
   int pid; /* 0 if not running */
   int pidlog; /* 0 if not running */
   int pi[2]; /* defined if flaglog */
-} x[1000];
+} x[SERVICES];
 int numx = 0;
 
-void reap()
-{
-  int r;
-  int wstat;
-  int i;
-
-  for (;;) {
-    r = wait_nohang(&wstat);
-    if (!r) break;
-    if (r == -1) {
-      if (errno == error_intr) continue;
-      break;
-    }
-
-    for (i = 0;i < numx;++i) {
-      if (x[i].pid == r) { x[i].pid = 0; break; }
-      if (x[i].pidlog == r) { x[i].pidlog = 0; break; }
-    }
-  }
-}
-
-void start(fn)
-char *fn;
+void start(char *fn)
 {
   struct stat st;
   int child;
   int i;
   char *args[3];
 
-  if (str_equal(fn,".")) return;
-  if (str_equal(fn,"..")) return;
+  if (fn[0] == '.') return;
 
   if (stat(fn,&st) == -1) {
     strerr_warn4(WARNING,"unable to stat ",fn,": ",&strerr_sys);
@@ -69,8 +48,8 @@ char *fn;
 	break;
 
   if (i == numx) {
-    if (numx >= 1000) {
-      strerr_warn4(WARNING,"unable to start ",fn,": already running 1000 services",0);
+    if (numx >= SERVICES) {
+      strerr_warn4(WARNING,"unable to start ",fn,": running too many services",0);
       return;
     }
     if (st.st_mode & 01000) {
@@ -91,6 +70,8 @@ char *fn;
     ++numx;
   }
 
+  x[i].flagactive = 1;
+
   if (!x[i].pid)
     switch(child = fork()) {
       case -1:
@@ -103,7 +84,7 @@ char *fn;
         args[0] = "supervise";
         args[1] = fn;
         args[2] = 0;
-        execvp(args[0],args);
+	pathexec_run(*args,args,environ);
         strerr_die4sys(111,WARNING,"unable to start supervise ",fn,": ");
       default:
 	x[i].pid = child;
@@ -122,28 +103,84 @@ char *fn;
         args[0] = "supervise";
         args[1] = "log";
         args[2] = 0;
-        execvp(args[0],args);
+	pathexec_run(*args,args,environ);
         strerr_die4sys(111,WARNING,"unable to start supervise ",fn,"/log: ");
       default:
 	x[i].pidlog = child;
     }
 }
 
-main()
+void direrror(void)
+{
+  strerr_warn2(WARNING,"unable to read directory: ",&strerr_sys);
+}
+
+void doit(void)
 {
   DIR *dir;
   direntry *d;
+  int i;
+  int r;
+  int wstat;
 
   for (;;) {
-    reap();
-    dir = opendir(".");
-    if (!dir)
-      strerr_warn2(WARNING,"unable to read directory: ",&strerr_sys);
-    else {
-      while (d = readdir(dir))
-	start(d->d_name);
-      closedir(dir);
+    r = wait_nohang(&wstat);
+    if (!r) break;
+    if (r == -1) {
+      if (errno == error_intr) continue; /* impossible */
+      break;
     }
-    sleep(60);
+
+    for (i = 0;i < numx;++i) {
+      if (x[i].pid == r) { x[i].pid = 0; break; }
+      if (x[i].pidlog == r) { x[i].pidlog = 0; break; }
+    }
+  }
+
+  for (i = 0;i < numx;++i)
+    x[i].flagactive = 0;
+
+  dir = opendir(".");
+  if (!dir) {
+    direrror();
+    return;
+  }
+  for (;;) {
+    errno = 0;
+    d = readdir(dir);
+    if (!d) break;
+    start(d->d_name);
+  }
+  if (errno) {
+    direrror();
+    closedir(dir);
+    return;
+  }
+  closedir(dir);
+
+  i = 0;
+  while (i < numx) {
+    if (!x[i].flagactive && !x[i].pid && !x[i].pidlog) {
+      if (x[i].flaglog) {
+        close(x[i].pi[0]);
+        close(x[i].pi[1]);
+        x[i].flaglog = 0;
+      }
+      x[i] = x[--numx];
+      continue;
+    }
+    ++i;
+  }
+}
+
+main(int argc,char **argv)
+{
+  if (argv[0] && argv[1])
+    if (chdir(argv[1]) == -1)
+      strerr_die4sys(111,FATAL,"unable to chdir to ",argv[1],": ");
+
+  for (;;) {
+    doit();
+    sleep(5);
   }
 }

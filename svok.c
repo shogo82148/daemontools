@@ -5,9 +5,7 @@
 
 #define FATAL "svok: fatal: "
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv)
 {
   int fd;
 
@@ -19,10 +17,8 @@ char **argv;
 
   fd = open_write("supervise/ok");
   if (fd == -1) {
-    if (errno == error_noent)
-      _exit(100);
-    if (errno == error_nodevice)
-      _exit(100);
+    if (errno == error_noent) _exit(100);
+    if (errno == error_nodevice) _exit(100);
     strerr_die4sys(111,FATAL,"unable to open ",argv[1],"/supervise/ok: ");
   }
 

@@ -8,5 +8,6 @@ hassgact.h
 hassgprm.h
 hasshsgr.h
 haswaitp.h
+iopause.h
 select.h
 uint64.h

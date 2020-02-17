@@ -1,7 +1,8 @@
 /* sgetopt.c, sgetopt.h: (yet another) improved getopt clone, outer layer
 D. J. Bernstein, djb@pobox.com.
-Depends on subgetopt.h, substdio.h, subfd.h.
+Depends on subgetopt.h, buffer.h.
 No system requirements.
+19991219: Switched to buffer.h.
 19970208: Cleanups.
 931201: Baseline.
 No known patent problems.
@@ -9,8 +10,7 @@ No known patent problems.
 Documentation in sgetopt.3.
 */
 
-#include "substdio.h"
-#include "subfd.h"
+#include "buffer.h"
 #define SGETOPTNOSHORT
 #include "sgetopt.h"
 #define SUBGETOPTNOSHORT
@@ -25,10 +25,7 @@ Documentation in sgetopt.3.
 int opterr = 1;
 char *optprogname = 0;
 
-int getopt(argc,argv,opts)
-int argc;
-char **argv;
-char *opts;
+int getopt(int argc,char **argv,char *opts)
 {
   int c;
   char *s;
@@ -42,13 +39,13 @@ char *opts;
   if (opterr)
     if (c == '?') {
       char chp[2]; chp[0] = optproblem; chp[1] = '\n';
-      substdio_puts(subfderr,optprogname);
+      buffer_puts(buffer_2,optprogname);
       if (argv[optind] && (optind < argc))
-        substdio_puts(subfderr,": illegal option -- ");
+        buffer_puts(buffer_2,": illegal option -- ");
       else
-        substdio_puts(subfderr,": option requires an argument -- ");
-      substdio_put(subfderr,chp,2);
-      substdio_flush(subfderr);
+        buffer_puts(buffer_2,": option requires an argument -- ");
+      buffer_put(buffer_2,chp,2);
+      buffer_flush(buffer_2);
     }
   return c;
 }

@@ -1,7 +1,6 @@
 #include "str.h"
 
-unsigned int str_len(s)
-register char *s;
+unsigned int str_len(char *s)
 {
   register char *t;
 

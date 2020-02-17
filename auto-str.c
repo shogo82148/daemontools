@@ -1,19 +1,16 @@
-#include "substdio.h"
+#include "buffer.h"
 #include "readwrite.h"
 #include "exit.h"
 
-char buf1[256];
-substdio ss1 = SUBSTDIO_FDBUF(write,1,buf1,sizeof(buf1));
+char bspace[256];
+buffer b = BUFFER_INIT(write,1,bspace,sizeof bspace);
 
-void puts(s)
-char *s;
+void puts(char *s)
 {
-  if (substdio_puts(&ss1,s) == -1) _exit(111);
+  if (buffer_puts(&b,s) == -1) _exit(111);
 }
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv)
 {
   char *name;
   char *value;
@@ -39,6 +36,6 @@ char **argv;
   }
 
   puts("\\\n\";\n");
-  if (substdio_flush(&ss1) == -1) _exit(111);
+  if (buffer_flush(&b) == -1) _exit(111);
   _exit(0);
 }

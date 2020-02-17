@@ -1,12 +1,9 @@
 #include "timestamp.h"
-#include "substdio.h"
+#include "buffer.h"
 #include "readwrite.h"
 #include "exit.h"
 
-int mywrite(fd,buf,len)
-int fd;
-char *buf;
-int len;
+int mywrite(int fd,char *buf,int len)
 {
   int w;
   w = write(fd,buf,len);
@@ -14,39 +11,38 @@ int len;
   return w;
 }
 
-char outbuf[1024];
-substdio ssout = SUBSTDIO_FDBUF(mywrite,1,outbuf,sizeof outbuf);
+char outbuf[2048];
+buffer out = BUFFER_INIT(mywrite,1,outbuf,sizeof outbuf);
 
-int myread(fd,buf,len) int fd; char *buf; int len;
+int myread(int fd,char *buf,int len)
 {
   int r;
-  substdio_flush(&ssout);
+  buffer_flush(&out);
   r = read(fd,buf,len);
   if (r == -1) _exit(111);
   return r;
 }
 
 char inbuf[1024];
-substdio ssin = SUBSTDIO_FDBUF(myread,0,inbuf,sizeof inbuf);
+buffer in = BUFFER_INIT(myread,0,inbuf,sizeof inbuf);
 
-char stamp[25];
+char stamp[TIMESTAMP + 1];
 
 main()
 {
   char ch;
-  int i;
 
   for (;;) {
-    if (substdio_get(&ssin,&ch,1) != 1) _exit(0);
+    if (buffer_GETC(&in,&ch) != 1) _exit(0);
 
     timestamp(stamp);
-    substdio_put(&ssout,stamp,sizeof stamp);
-    substdio_put(&ssout," ",1);
+    stamp[TIMESTAMP] = ' ';
+    buffer_put(&out,stamp,TIMESTAMP + 1);
 
     for (;;) {
-      substdio_BPUTC(&ssout,ch);
+      buffer_PUTC(&out,ch);
       if (ch == '\n') break;
-      if (substdio_get(&ssin,&ch,1) != 1) _exit(0);
+      if (buffer_GETC(&in,&ch) != 1) _exit(0);
     }
   }
 }

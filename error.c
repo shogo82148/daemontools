@@ -100,3 +100,17 @@ ENXIO;
 #else
 -14;
 #endif
+
+int error_proto =
+#ifdef EPROTO
+EPROTO;
+#else
+-15;
+#endif
+
+int error_isdir =
+#ifdef EISDIR
+EISDIR;
+#else
+-16;
+#endif

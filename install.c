@@ -1,4 +1,4 @@
-#include "substdio.h"
+#include "buffer.h"
 #include "strerr.h"
 #include "error.h"
 #include "open.h"
@@ -44,10 +44,10 @@ int mode;
     strerr_die6sys(111,FATAL,"unable to chmod ",home,"/",subdir,": ");
 }
 
-char inbuf[SUBSTDIO_INSIZE];
-char outbuf[SUBSTDIO_OUTSIZE];
-substdio ssin;
-substdio ssout;
+char inbuf[BUFFER_INSIZE];
+char outbuf[BUFFER_OUTSIZE];
+buffer ssin;
+buffer ssout;
 
 void c(home,subdir,file,uid,gid,mode)
 char *home;
@@ -66,7 +66,7 @@ int mode;
   fdin = open_read(file);
   if (fdin == -1)
     strerr_die4sys(111,FATAL,"unable to read ",file,": ");
-  substdio_fdbuf(&ssin,read,fdin,inbuf,sizeof inbuf);
+  buffer_init(&ssin,read,fdin,inbuf,sizeof inbuf);
 
   if (chdir(home) == -1)
     strerr_die4sys(111,FATAL,"unable to switch to ",home,": ");
@@ -76,9 +76,9 @@ int mode;
   fdout = open_trunc(file);
   if (fdout == -1)
     strerr_die6sys(111,FATAL,"unable to write .../",subdir,"/",file,": ");
-  substdio_fdbuf(&ssout,write,fdout,outbuf,sizeof outbuf);
+  buffer_init(&ssout,write,fdout,outbuf,sizeof outbuf);
 
-  switch(substdio_copy(&ssout,&ssin)) {
+  switch(buffer_copy(&ssout,&ssin)) {
     case -2:
       strerr_die4sys(111,FATAL,"unable to read ",file,": ");
     case -3:
@@ -86,7 +86,7 @@ int mode;
   }
 
   close(fdin);
-  if (substdio_flush(&ssout) == -1)
+  if (buffer_flush(&ssout) == -1)
     strerr_die6sys(111,FATAL,"unable to write .../",subdir,"/",file,": ");
   if (fsync(fdout) == -1)
     strerr_die6sys(111,FATAL,"unable to write .../",subdir,"/",file,": ");
@@ -118,13 +118,13 @@ int mode;
   fdout = open_trunc(file);
   if (fdout == -1)
     strerr_die6sys(111,FATAL,"unable to write .../",subdir,"/",file,": ");
-  substdio_fdbuf(&ssout,write,fdout,outbuf,sizeof outbuf);
+  buffer_init(&ssout,write,fdout,outbuf,sizeof outbuf);
 
   while (len-- > 0)
-    if (substdio_put(&ssout,"",1) == -1)
+    if (buffer_put(&ssout,"",1) == -1)
       strerr_die6sys(111,FATAL,"unable to write .../",subdir,"/",file,": ");
 
-  if (substdio_flush(&ssout) == -1)
+  if (buffer_flush(&ssout) == -1)
     strerr_die6sys(111,FATAL,"unable to write .../",subdir,"/",file,": ");
   if (fsync(fdout) == -1)
     strerr_die6sys(111,FATAL,"unable to write .../",subdir,"/",file,": ");

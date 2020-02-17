@@ -1,17 +1,16 @@
 #include <sys/types.h>
 #include <pwd.h>
-#include "strerr.h"
 #include "prot.h"
+#include "strerr.h"
+#include "pathexec.h"
 
 #define FATAL "setuidgid: fatal: "
 
-main(argc,argv)
-int argc;
-char **argv;
-{
-  char *account;
-  struct passwd *pw;
+char *account;
+struct passwd *pw;
 
+main(int argc,char **argv,char **envp)
+{
   account = *++argv;
   if (!account || !*++argv)
     strerr_die1x(100,"setuidgid: usage: setuidgid account child");
@@ -25,6 +24,6 @@ char **argv;
   if (prot_uid(pw->pw_uid) == -1)
     strerr_die2sys(111,FATAL,"unable to setuid: ");
 
-  execvp(*argv,argv);
+  pathexec_run(*argv,argv,envp);
   strerr_die4sys(111,FATAL,"unable to run ",*argv,": ");
 }

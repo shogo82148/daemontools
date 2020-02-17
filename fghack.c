@@ -3,13 +3,12 @@
 #include "error.h"
 #include "strerr.h"
 #include "readwrite.h"
+#include "pathexec.h"
 #include "exit.h"
 
 #define FATAL "fghack: fatal: "
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv,char **envp)
 {
   char ch;
   int wstat;
@@ -30,7 +29,7 @@ char **argv;
       close(pi[0]);
       for (i = 0;i < 30;++i)
         dup(pi[1]);
-      execvp(argv[1],argv + 1);
+      pathexec_run(argv[1],argv + 1,envp);
       strerr_die4sys(111,FATAL,"unable to run ",argv[1],": ");
   }
 

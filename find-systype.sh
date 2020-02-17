@@ -15,6 +15,7 @@
 # the idea here is to include ALL useful available information.
 
 exec 2>/dev/null
+
 sys="`uname -s | tr '/:[A-Z]' '..[a-z]'`"
 if [ x"$sys" != x ]
 then
@@ -140,5 +141,19 @@ i686)
   # STOP SAYING THAT! (Linux)
   chip=ppro
 esac
+
+if $CC -c x86cpuid.c
+then
+  if $LD -o x86cpuid x86cpuid.o
+  then
+    x86cpuid="`./x86cpuid | tr /: ..`"
+    case "$x86cpuid" in
+      ?*)
+        chip="$x86cpuid"
+        ;;
+    esac
+  fi
+fi
+rm -f x86cpuid x86cpuid.o
 
 echo "$oper-:$arch-:$syst-:$chip-:$kern-" | tr ' [A-Z]' '.[a-z]'

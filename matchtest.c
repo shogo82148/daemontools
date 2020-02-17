@@ -1,11 +1,8 @@
 #include "match.h"
-#include "substdio.h"
-#include "subfd.h"
+#include "buffer.h"
 #include "str.h"
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv)
 {
   char *pattern = "";
   char *buf = "";
@@ -16,11 +13,11 @@ char **argv;
       buf = argv[2];
   }
 
-  substdio_puts(subfdout,match(pattern,buf,str_len(buf)) ? "+" : "-");
-  substdio_puts(subfdout,pattern);
-  substdio_puts(subfdout," (");
-  substdio_puts(subfdout,buf);
-  substdio_puts(subfdout,")\n");
-  substdio_flush(subfdout);
+  buffer_puts(buffer_1,match(pattern,buf,str_len(buf)) ? "+" : "-");
+  buffer_puts(buffer_1,pattern);
+  buffer_puts(buffer_1," (");
+  buffer_puts(buffer_1,buf);
+  buffer_puts(buffer_1,")\n");
+  buffer_flush(buffer_1);
   _exit(0);
 }

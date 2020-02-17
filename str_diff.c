@@ -1,8 +1,6 @@
 #include "str.h"
 
-int str_diff(s,t)
-register char *s;
-register char *t;
+int str_diff(register char *s,register char *t)
 {
   register char x;
 

@@ -1,25 +1,22 @@
 #include <sys/types.h>
 #include <pwd.h>
-#include "strerr.h"
 #include "fmt.h"
-#include "env.h"
+#include "strerr.h"
+#include "pathexec.h"
 
 #define FATAL "envuidgid: fatal: "
 
-void nomem()
+void nomem(void)
 {
   strerr_die2x(111,FATAL,"out of memory");
 }
 
 char strnum[FMT_ULONG];
+char *account;
+struct passwd *pw;
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv)
 {
-  char *account;
-  struct passwd *pw;
-
   account = *++argv;
   if (!account || !*++argv)
     strerr_die1x(100,"envuidgid: usage: envuidgid account child");
@@ -28,12 +25,11 @@ char **argv;
   if (!pw)
     strerr_die3x(111,FATAL,"unknown account ",account);
 
-  if (!env_init()) nomem();
-  strnum[fmt_ulong(strnum,(unsigned long) pw->pw_gid)] = 0;
-  if (!env_put2("GID",strnum)) nomem();
-  strnum[fmt_ulong(strnum,(unsigned long) pw->pw_uid)] = 0;
-  if (!env_put2("UID",strnum)) nomem();
+  strnum[fmt_ulong(strnum,pw->pw_gid)] = 0;
+  if (!pathexec_env("GID",strnum)) nomem();
+  strnum[fmt_ulong(strnum,pw->pw_uid)] = 0;
+  if (!pathexec_env("UID",strnum)) nomem();
 
-  execvp(*argv,argv);
+  pathexec(argv);
   strerr_die4sys(111,FATAL,"unable to run ",*argv,": ");
 }

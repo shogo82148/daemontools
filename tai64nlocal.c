@@ -1,28 +1,24 @@
 #include <sys/types.h>
 #include <sys/time.h>
-#include "substdio.h"
-#include "subfd.h"
+#include "buffer.h"
 #include "exit.h"
 #include "fmt.h"
 
 char num[FMT_ULONG];
 
-void get(ch)
-char *ch;
+void get(char *ch)
 {
   int r;
 
-  r = substdio_get(subfdin,ch,1);
+  r = buffer_GETC(buffer_0,ch);
   if (r == 1) return;
   if (r == 0) _exit(0);
   _exit(111);
 }
 
-void out(buf,len)
-char *buf;
-int len;
+void out(char *buf,int len)
 {
-  if (substdio_put(subfdout,buf,len) == -1)
+  if (buffer_put(buffer_1,buf,len) == -1)
     _exit(111);
 }
 
@@ -56,19 +52,13 @@ main()
       }
       secs -= 4611686018427387914ULL;
       t = localtime(&secs);
-      out(num,fmt_ulong(num,(unsigned long) (1900 + t->tm_year)));
-      out("-",1);
-      out(num,fmt_uint0(num,(unsigned int) (1 + t->tm_mon),2));
-      out("-",1);
-      out(num,fmt_uint0(num,(unsigned int) t->tm_mday,2));
-      out(" ",1);
-      out(num,fmt_uint0(num,(unsigned int) t->tm_hour,2));
-      out(":",1);
-      out(num,fmt_uint0(num,(unsigned int) t->tm_min,2));
-      out(":",1);
-      out(num,fmt_uint0(num,(unsigned int) t->tm_sec,2));
-      out(".",1);
-      out(num,fmt_uint0(num,(unsigned int) nanosecs,9));
+      out(num,fmt_ulong(num,1900 + t->tm_year));
+      out("-",1); out(num,fmt_uint0(num,1 + t->tm_mon,2));
+      out("-",1); out(num,fmt_uint0(num,t->tm_mday,2));
+      out(" ",1); out(num,fmt_uint0(num,t->tm_hour,2));
+      out(":",1); out(num,fmt_uint0(num,t->tm_min,2));
+      out(":",1); out(num,fmt_uint0(num,t->tm_sec,2));
+      out(".",1); out(num,fmt_uint0(num,nanosecs,9));
     }
     for (;;) {
       out(&ch,1);

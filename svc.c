@@ -3,7 +3,7 @@
 #include "error.h"
 #include "open.h"
 #include "sgetopt.h"
-#include "substdio.h"
+#include "buffer.h"
 #include "readwrite.h"
 #include "exit.h"
 #include "byte.h"
@@ -15,20 +15,18 @@
 int datalen = 0;
 char data[20];
 
-substdio ss;
-char ssbuf[1];
+buffer b;
+char bspace[1];
 
 int fdorigdir;
 
-main(argc,argv)
-int argc;
-char **argv;
+main(int argc,char **argv)
 {
   int opt;
   int fd;
   char *dir;
 
-  sig_pipeignore();
+  sig_ignore(sig_pipe);
 
   while ((opt = getopt(argc,argv,"udopchaitkx")) != opteof)
     if (opt == '?')
@@ -55,8 +53,8 @@ char **argv;
           strerr_warn4(WARNING,"unable to control ",dir,": ",&strerr_sys);
       else {
         ndelay_off(fd);
-        substdio_fdbuf(&ss,write,fd,ssbuf,sizeof ssbuf);
-        if (substdio_putflush(&ss,data,datalen) == -1)
+        buffer_init(&b,write,fd,bspace,sizeof bspace);
+        if (buffer_putflush(&b,data,datalen) == -1)
           strerr_warn4(WARNING,"error writing commands to ",dir,": ",&strerr_sys);
         close(fd);
       }

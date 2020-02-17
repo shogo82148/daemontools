@@ -1,7 +1,7 @@
-daemontools 0.61, alpha.
-19990826
+daemontools 0.70, beta.
+20000305
 Copyright 1999
 D. J. Bernstein, djb@pobox.com
 
-daemontools home page: http://pobox.com/~djb/daemontools.html
-Installation instructions: http://pobox.com/~djb/daemontools/install.html
+daemontools home page: http://cr.yp.to/daemontools.html
+Installation instructions: http://cr.yp.to/daemontools/install.html
