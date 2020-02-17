@@ -1,0 +1,23 @@
+#!/bin/sh -e
+
+umask 022
+test -e package || exit 1
+
+mkdir -p compile command
+
+echo 'Linking ./src/* into ./compile...'
+for i in `ls src`
+do
+  test -e compile/$i || ln -s ../src/$i compile/$i
+done
+
+echo 'Compiling everything in ./compile...'
+( cd compile; exec make )
+
+echo 'Copying commands into ./command...'
+for i in `cat package/commands`
+do
+  rm -f command/$i'{new}'
+  cp -p compile/$i command/$i'{new}'
+  mv -f command/$i'{new}' command/$i
+done

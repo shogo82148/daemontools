@@ -1,0 +1,20 @@
+#!/bin/sh -e
+
+umask 022
+test -e package || exit 1
+
+if test -e /service
+then
+  echo '/service exists. I assume that svscan is already running.'
+  exit 0
+fi
+
+echo 'Creating /service...'
+mkdir /service
+
+if test -e /etc/inittab
+then
+  /command/setlock /etc/inittab package/run.inittab
+else
+  /command/setlock /etc/rc.local package/run.rclocal
+fi

@@ -1,2 +1,0 @@
-/* sysdep: +flock */
-#define HASFLOCK 1
