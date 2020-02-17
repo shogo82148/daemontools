@@ -1,35 +1,125 @@
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "strerr.h"
+#include "error.h"
 #include "open.h"
+#include "fmt.h"
+#include "taia.h"
 #include "substdio.h"
 #include "readwrite.h"
 #include "exit.h"
-#include "fmt.h"
-
-char outbuf[1024];
-substdio ssout = SUBSTDIO_FDBUF(write,1,outbuf,sizeof outbuf);
 
 #define FATAL "svstat: fatal: "
 #define WARNING "svstat: warning: "
 
-int fdorigdir;
+char outbuf[1024];
+substdio ssout = SUBSTDIO_FDBUF(write,1,outbuf,sizeof outbuf);
 
-char *dir;
-int fd;
-unsigned char status[23];
+char status[18];
+char strnum[FMT_ULONG];
 
 unsigned long pid;
-unsigned long when;
 unsigned char normallyup;
 unsigned char want;
 unsigned char paused;
 
-char strnum[FMT_ULONG];
+void doit(dir)
+char *dir;
+{
+  struct stat st;
+  int r;
+  int i;
+  int fd;
+  char *x;
 
-void main(argc,argv)
+  substdio_puts(&ssout,dir);
+  substdio_puts(&ssout,": ");
+
+  if (chdir(dir) == -1) {
+    x = error_str(errno);
+    substdio_puts(&ssout,"unable to chdir: ");
+    substdio_puts(&ssout,x);
+    return;
+  }
+
+  normallyup = 0;
+  if (stat("down",&st) == -1) {
+    if (errno != error_noent) {
+      x = error_str(errno);
+      substdio_puts(&ssout,"unable to stat down: ");
+      substdio_puts(&ssout,x);
+      return;
+    }
+    normallyup = 1;
+  }
+
+  fd = open_write("supervise/ok");
+  if (fd == -1) {
+    if (errno == error_nodevice) {
+      substdio_puts(&ssout,"supervise not running");
+      return;
+    }
+    x = error_str(errno);
+    substdio_puts(&ssout,"unable to open supervise/ok: ");
+    substdio_puts(&ssout,x);
+    return;
+  }
+  close(fd);
+
+  fd = open_read("supervise/status");
+  if (fd == -1) {
+    x = error_str(errno);
+    substdio_puts(&ssout,"unable to open supervise/status: ");
+    substdio_puts(&ssout,x);
+    return;
+  }
+  r = read(fd,status,sizeof status);
+  close(fd);
+  if (r == -1) {
+    substdio_puts(&ssout,"unable to read supervise/status: ");
+    substdio_puts(&ssout,x);
+    return;
+  }
+  if (r < sizeof status) {
+    substdio_puts(&ssout,"unable to read supervise/status: bad format");
+    return;
+  }
+
+  pid = (unsigned char) status[15];
+  pid <<= 8; pid += (unsigned char) status[14];
+  pid <<= 8; pid += (unsigned char) status[13];
+  pid <<= 8; pid += (unsigned char) status[12];
+
+  paused = status[16];
+  want = status[17];
+
+  if (pid) {
+    substdio_puts(&ssout,"up (pid ");
+    substdio_put(&ssout,strnum,fmt_ulong(strnum,pid));
+    substdio_puts(&ssout,")");
+    if (!normallyup)
+      substdio_puts(&ssout,", normally down");
+  }
+  else {
+    substdio_puts(&ssout,"down");
+    if (normallyup)
+      substdio_puts(&ssout,", normally up");
+  }
+
+  if (pid && paused)
+    substdio_puts(&ssout,", paused");
+  if (!pid && (want == 'u'))
+    substdio_puts(&ssout,", want up");
+  if (pid && (want == 'd'))
+    substdio_puts(&ssout,", want down");
+}
+
+main(argc,argv)
 int argc;
 char **argv;
 {
-  int r;
+  int fdorigdir;
+  char *dir;
 
   ++argv;
 
@@ -38,65 +128,10 @@ char **argv;
     strerr_die2sys(111,FATAL,"unable to open current directory: ");
 
   while (dir = *argv++) {
+    doit(dir);
+    substdio_puts(&ssout,"\n");
     if (fchdir(fdorigdir) == -1)
       strerr_die2sys(111,FATAL,"unable to set directory: ");
-    if (chdir(dir) == -1)
-      strerr_warn4(WARNING,"unable to chdir to ",dir,": ",&strerr_sys);
-    else {
-      fd = open_read("status");
-      if (fd == -1)
-        strerr_warn4(WARNING,"unable to read status in ",dir,": ",&strerr_sys);
-      else {
-	r = read(fd,status,sizeof status);
-	if (r == -1)
-          strerr_warn4(WARNING,"unable to read status in ",dir,": ",&strerr_sys);
-	else if (r < sizeof status)
-          strerr_warn4(WARNING,"unable to read status in ",dir,": bad format",0);
-	else {
-	  pid = status[19];
-	  pid <<= 8; pid += status[18];
-	  pid <<= 8; pid += status[17];
-	  pid <<= 8; pid += status[16];
-
-	  when = status[0] - 64;
-	  when <<= 8; when += status[1];
-	  when <<= 8; when += status[2];
-	  when <<= 8; when += status[3];
-	  when <<= 8; when += status[4];
-	  when <<= 8; when += status[5];
-	  when <<= 8; when += status[6];
-	  when <<= 8; when += status[7];
-
-	  normallyup = status[20];
-	  paused = status[21];
-	  want = status[22];
-
-	  substdio_put(&ssout,strnum,fmt_ulong(strnum,when));
-
-	  if (pid) {
-	    substdio_puts(&ssout," up pid ");
-	    substdio_put(&ssout,strnum,fmt_ulong(strnum,pid));
-	    if (!normallyup)
-	      substdio_puts(&ssout,", normally down");
-	  }
-	  else {
-	    substdio_puts(&ssout," down");
-	    if (normallyup)
-	      substdio_puts(&ssout,", normally up");
-	  }
-
-	  if (pid && paused)
-	    substdio_puts(&ssout,", paused");
-	  if (!pid && (want == 'u'))
-	    substdio_puts(&ssout,", want up");
-	  if (pid && (want == 'd'))
-	    substdio_puts(&ssout,", want down");
-
-	  substdio_puts(&ssout,"\n");
-	}
-        close(fd);
-      }
-    }
   }
 
   substdio_flush(&ssout);

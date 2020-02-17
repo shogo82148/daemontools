@@ -20,11 +20,9 @@ int i;
   X(error_pipe,"broken pipe")
   X(error_perm,"permission denied")
   X(error_acces,"access denied")
+  X(error_nodevice,"device not configured")
 #ifdef ESRCH
   X(ESRCH,"no such process")
-#endif
-#ifdef ENXIO
-  X(ENXIO,"device not configured")
 #endif
 #ifdef E2BIG
   X(E2BIG,"argument list too long")

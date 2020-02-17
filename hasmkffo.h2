@@ -1,0 +1,2 @@
+/* sysdep: +mkfifo */
+#define HASMKFIFO 1

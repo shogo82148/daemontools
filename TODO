@@ -1,1 +1,3 @@
-use fancy algorithms to speed up usually
+review effect of outages on multilog
+provide some way to report the times maintained by supervise
+use libtai in tai64nlocal

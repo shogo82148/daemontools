@@ -9,3 +9,4 @@ hassgprm.h
 hasshsgr.h
 haswaitp.h
 select.h
+uint64.h

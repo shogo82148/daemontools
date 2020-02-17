@@ -93,3 +93,10 @@ EACCES;
 #else
 -13;
 #endif
+
+int error_nodevice =
+#ifdef ENXIO
+ENXIO;
+#else
+-14;
+#endif

@@ -1,5 +1,6 @@
 #include "ndelay.h"
 #include "strerr.h"
+#include "error.h"
 #include "open.h"
 #include "sgetopt.h"
 #include "substdio.h"
@@ -19,7 +20,7 @@ char ssbuf[1];
 
 int fdorigdir;
 
-void main(argc,argv)
+main(argc,argv)
 int argc;
 char **argv;
 {
@@ -29,9 +30,9 @@ char **argv;
 
   sig_pipeignore();
 
-  while ((opt = getopt(argc,argv,"udorspchaitkx")) != opteof)
+  while ((opt = getopt(argc,argv,"udopchaitkx")) != opteof)
     if (opt == '?')
-      strerr_die1x(100,"svc: usage: svc [ -udorspchaitkx ] dir ...");
+      strerr_die1x(100,"svc options: u up, d down, o once, x exit, p pause, c continue, h hup, a alarm, i interrupt, t term, k kill");
     else
       if (datalen < sizeof data)
         if (byte_chr(data,datalen,opt) == datalen)
@@ -43,14 +44,15 @@ char **argv;
     strerr_die2sys(111,FATAL,"unable to open current directory: ");
 
   while (dir = *argv++) {
-    if (fchdir(fdorigdir) == -1)
-      strerr_die2sys(111,FATAL,"unable to set directory: ");
     if (chdir(dir) == -1)
       strerr_warn4(WARNING,"unable to chdir to ",dir,": ",&strerr_sys);
     else {
-      fd = open_write("svcontrol");
+      fd = open_write("supervise/control");
       if (fd == -1)
-        strerr_warn4(WARNING,"unable to control ",dir,": ",&strerr_sys);
+        if (errno == error_nodevice)
+          strerr_warn4(WARNING,"unable to control ",dir,": supervise not running",0);
+        else
+          strerr_warn4(WARNING,"unable to control ",dir,": ",&strerr_sys);
       else {
         ndelay_off(fd);
         substdio_fdbuf(&ss,write,fd,ssbuf,sizeof ssbuf);
@@ -59,6 +61,8 @@ char **argv;
         close(fd);
       }
     }
+    if (fchdir(fdorigdir) == -1)
+      strerr_die2sys(111,FATAL,"unable to set directory: ");
   }
 
   _exit(0);
