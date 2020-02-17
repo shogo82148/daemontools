@@ -73,3 +73,13 @@
 	internal: upgraded to latest installation system.
 20010711
 	version: daemontools 0.75, beta.
+20010712
+	internal: ./package/compile creates ./compile/home.
+	internal: ./package/compile creates absolute ./compile/src
+		symlink instead of using .., so ./compile can itself be
+		a symlink. tnx Paul Jarc.
+	portability problem: Solaris sh has a built-in test that doesn't
+		support -e, even though the test program supports -e.
+		impact: package/{compile,run,upgrade} fail. tnx Mate
+		Wierdl. fix: use -d, -h, -r.
+	version: daemontools 0.76, beta.

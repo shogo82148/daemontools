@@ -44,7 +44,6 @@ src/conf-ld
 src/print-cc.sh
 src/print-ld.sh
 src/print-ar.sh
-src/print-home.sh
 src/choose.sh
 src/warn-auto.sh
 src/find-systype.sh

@@ -8,22 +8,21 @@ clean:
 	envdir.o envuidgid envuidgid.o error.o error_str.o fd_copy.o \
 	fd_move.o fghack fghack.o fifo.o fmt_uint.o fmt_uint0.o fmt_ulong.o \
 	hasflock.h hasmkffo.h hassgact.h hassgprm.h hasshsgr.h haswaitp.h \
-	home iopause.h iopause.o it load lock_ex.o lock_exnb.o makelib \
-	match.o matchtest matchtest.o multilog multilog.o ndelay_off.o \
-	ndelay_on.o open_append.o open_read.o open_trunc.o open_write.o \
-	openreadclose.o pathexec_env.o pathexec_run.o pgrphack pgrphack.o \
-	prot.o readclose.o readproctitle readproctitle.o rts scan_ulong.o \
-	seek_set.o select.h setlock setlock.o setuidgid setuidgid.o sgetopt.o \
-	sig.o sig_block.o sig_catch.o sig_pause.o softlimit softlimit.o \
-	str_chr.o str_diff.o str_len.o str_start.o stralloc_cat.o \
-	stralloc_catb.o stralloc_cats.o stralloc_eady.o stralloc_opyb.o \
-	stralloc_opys.o stralloc_pend.o strerr_die.o strerr_sys.o subgetopt.o \
-	supervise supervise.o svc svc.o svok svok.o svscan svscan.o \
-	svscanboot svstat svstat.o sysdeps systype tai64n tai64n.o \
-	tai64nlocal tai64nlocal.o tai_now.o tai_pack.o tai_sub.o tai_unpack.o \
-	taia_add.o taia_approx.o taia_frac.o taia_less.o taia_now.o \
-	taia_pack.o taia_sub.o taia_uint.o time.a timestamp.o uint64.h unix.a \
-	wait_nohang.o wait_pid.o
+	iopause.h iopause.o it load lock_ex.o lock_exnb.o makelib match.o \
+	matchtest matchtest.o multilog multilog.o ndelay_off.o ndelay_on.o \
+	open_append.o open_read.o open_trunc.o open_write.o openreadclose.o \
+	pathexec_env.o pathexec_run.o pgrphack pgrphack.o prot.o readclose.o \
+	readproctitle readproctitle.o rts scan_ulong.o seek_set.o select.h \
+	setlock setlock.o setuidgid setuidgid.o sgetopt.o sig.o sig_block.o \
+	sig_catch.o sig_pause.o softlimit softlimit.o str_chr.o str_diff.o \
+	str_len.o str_start.o stralloc_cat.o stralloc_catb.o stralloc_cats.o \
+	stralloc_eady.o stralloc_opyb.o stralloc_opys.o stralloc_pend.o \
+	strerr_die.o strerr_sys.o subgetopt.o supervise supervise.o svc svc.o \
+	svok svok.o svscan svscan.o svscanboot svstat svstat.o sysdeps \
+	systype tai64n tai64n.o tai64nlocal tai64nlocal.o tai_now.o \
+	tai_pack.o tai_sub.o tai_unpack.o taia_add.o taia_approx.o \
+	taia_frac.o taia_less.o taia_now.o taia_pack.o taia_sub.o taia_uint.o \
+	time.a timestamp.o uint64.h unix.a wait_nohang.o wait_pid.o
 
 alloc.o: alloc.c alloc.h compile error.h
 	./compile alloc.c
@@ -171,9 +170,6 @@ tryshsgr.c warn-shsgr
 
 haswaitp.h: choose compile haswaitp.h1 haswaitp.h2 load trywaitp.c
 	./choose cl trywaitp haswaitp.h1 haswaitp.h2 > haswaitp.h
-
-home: print-home.sh
-	sh print-home.sh > home
 
 iopause.h: choose compile iopause.h1 iopause.h2 load trypoll.c
 	./choose clr trypoll iopause.h1 iopause.h2 > iopause.h

@@ -1,9 +1,10 @@
 #!/bin/sh -e
 
 umask 022
-test -e package || exit 1
+test -d package || ( echo 'Wrong working directory.'; exit 1 )
+test -d src || ( echo 'Wrong working directory.'; exit 1 )
 
-if test -e /service
+if test -d /service
 then
   echo '/service exists. I assume that svscan is already running.'
   exit 0
@@ -12,7 +13,7 @@ fi
 echo 'Creating /service...'
 mkdir /service
 
-if test -e /etc/inittab
+if test -r /etc/inittab
 then
   /command/setlock /etc/inittab package/run.inittab
 else
