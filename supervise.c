@@ -233,13 +233,15 @@ char **envp;
     strerr_die4sys(111,FATAL,"unable to write ",dir,"/supervise/control: ");
   coe(fdcontrolwrite);
 
+  pidchange();
+  announce();
+
   fifo_make("supervise/ok",0600);
   fdok = open_read("supervise/ok");
   if (fdok == -1)
     strerr_die4sys(111,FATAL,"unable to read ",dir,"/supervise/ok: ");
   coe(fdok);
 
-  pidchange();
   if (!flagwant || flagwantup) trystart(argv);
 
   doit();

@@ -1,2 +1,14 @@
 19990824
 	version: daemontools 0.60, alpha.
+19990825
+	port: some systems need sys/time.h, not just time.h, before
+		sys/resource.h. impact: couldn't compile. fix: change
+		time.h to sys/time.h in softlimit.c. tnx Jos Backus and
+		Chris Johnson.
+	port: echo -n echoes literal -n under traditional System V. tnx
+		Tim Goodwin. impact: rts mismatch. fix: echo | tr -d.
+	doc: removed note on man pages in conf-home. tnx Mate Wierdl.
+	ui: do pidchange() and announce() before opening supervise/ok in
+		supervise.c.
+19990826
+	version: daemontools 0.61, alpha.

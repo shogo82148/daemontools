@@ -126,7 +126,7 @@ echo '--- multilog e prints to stderr'
 ( echo one; echo two ) | ./multilog e 2>&1; echo $?
 
 echo '--- multilog inserts newline after partial final line'
-( echo one; echo -n two ) | ./multilog e 2>&1; echo $?
+( echo one; echo two | tr -d '\012' ) | ./multilog e 2>&1; echo $?
 
 echo '--- multilog handles multiple actions'
 ( echo one; echo two ) | ./multilog e e 2>&1; echo $?

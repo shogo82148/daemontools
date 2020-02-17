@@ -1,5 +1,5 @@
 #include <sys/types.h>
-#include <time.h>
+#include <sys/time.h>
 #include "substdio.h"
 #include "subfd.h"
 #include "exit.h"
